@@ -19,11 +19,11 @@ var joinCmd = &cobra.Command{
 			return fmt.Errorf("invalid room code %q — must be exactly 6 characters", code)
 		}
 
-		fmt.Printf("🔗 Joining room %s...\n", code)
-		fmt.Println("⏳ Discovering peers via signaling server...")
-		fmt.Println("🕳  Punching through NAT...")
-		fmt.Println("⏱  Syncing clocks...")
-		fmt.Printf("✅ Connected to room %s\n", code)
+		fmt.Printf("jining room %s...\n", code)
+		fmt.Println("discovering peers via signaling server...")
+		fmt.Println("punching through NAT...")
+		fmt.Println("syncing clocks...")
+		fmt.Printf("connected to room %s\n", code)
 
 		return nil
 	},
