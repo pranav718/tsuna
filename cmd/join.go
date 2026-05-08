@@ -9,8 +9,8 @@ import (
 
 var joinCmd = &cobra.Command{
 	Use:   "join <CODE>",
-	Short: "Join a watch party room",
-	Long:  "Join an existing Tsuna room using a 6-character room code.",
+	Short: "join a watch party room",
+	Long:  "join an existing tsuna room using a 6-character room code.",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		code := strings.ToUpper(strings.TrimSpace(args[0]))
@@ -19,7 +19,7 @@ var joinCmd = &cobra.Command{
 			return fmt.Errorf("invalid room code %q — must be exactly 6 characters", code)
 		}
 
-		fmt.Printf("jining room %s...\n", code)
+		fmt.Printf("joining room %s...\n", code)
 		fmt.Println("discovering peers via signaling server...")
 		fmt.Println("punching through NAT...")
 		fmt.Println("syncing clocks...")

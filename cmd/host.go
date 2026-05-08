@@ -9,7 +9,7 @@ import (
 var hostCmd = &cobra.Command{
 	Use:   "host",
 	Short: "create a new watch room",
-	Long:  "spin up a new tsuna room and get a 6-character code to share with your friends.",
+	Long:  "spin up a new tsuna room and get a 6-character code to share with your friends :D",
 	RunE:  runHost,
 }
 
