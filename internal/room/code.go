@@ -1,4 +1,3 @@
-// Package room handles room lifecycle, peer state, and code generation.
 package room
 
 import (
@@ -7,15 +6,10 @@ import (
 	"strings"
 )
 
-// charset is the alphabet used for room codes.
-// Excludes visually ambiguous characters: 0, O, 1, I, L.
 const charset = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
-// CodeLength is the fixed length of all Tsuna room codes.
 const CodeLength = 6
 
-// GenerateCode produces a cryptographically random 6-character room code
-// using the safe charset above. Examples: "SAKURA", "MX4T9Q", "BRN7WA".
 func GenerateCode() (string, error) {
 	n := big.NewInt(int64(len(charset)))
 	var b strings.Builder
@@ -32,8 +26,6 @@ func GenerateCode() (string, error) {
 	return b.String(), nil
 }
 
-// ValidateCode returns true if the code is exactly CodeLength characters
-// and consists entirely of characters from the charset.
 func ValidateCode(code string) bool {
 	if len(code) != CodeLength {
 		return false
@@ -46,7 +38,6 @@ func ValidateCode(code string) bool {
 	return true
 }
 
-// NormalizeCode upper-cases and trims whitespace from a user-supplied code.
 func NormalizeCode(code string) string {
 	return strings.ToUpper(strings.TrimSpace(code))
 }
