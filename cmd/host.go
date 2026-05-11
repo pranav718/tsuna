@@ -9,10 +9,12 @@ import (
 	"os/signal"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pranav718/tsuna/internal/p2p"
 	"github.com/pranav718/tsuna/internal/room"
 	"github.com/pranav718/tsuna/internal/session"
 	sig "github.com/pranav718/tsuna/internal/signal"
+	"github.com/pranav718/tsuna/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -89,13 +91,16 @@ peerFound:
 		return fmt.Errorf("hole punch failed: %w", err)
 	}
 
-	fmt.Printf("connected! rtt=%v\n\n", result.RTT)
+	fmt.Printf("connected! rtt=%v\n", result.RTT)
+	fmt.Printf("launching dashboard...\n\n")
 
 	transport := p2p.NewTransport(result.Conn, peerEP.UDPAddr(), localID, code)
 	transport.Start()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+
+	uiCh := make(chan tui.UIEvent, 64)
 
 	sess := session.New(session.Config{
 		LocalID:   localID,
@@ -104,14 +109,23 @@ peerFound:
 		IsHost:    true,
 		MpvSocket: mpvSocket,
 		Transport: transport,
+		UIEvents:  uiCh,
 	})
 
-	err = sess.Run(ctx)
+	go func() {
+		sess.Run(ctx)
+		close(uiCh)
+	}()
+
+	model := tui.NewModel(code, localID, remotePeer.PeerID, true, uiCh, cancel)
+	p := tea.NewProgram(model, tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		return fmt.Errorf("tui error: %w", err)
+	}
 
 	sig.Leave(signalServer, code, localID)
 	transport.Close()
-	fmt.Println("\nsession ended.")
-	return err
+	return nil
 }
 
 func generatePeerID() string {
