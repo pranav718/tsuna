@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pranav718/tsuna/internal/p2p"
+	"github.com/pranav718/tsuna/internal/tui"
 )
 
 const broadcastInterval = 500 * time.Millisecond
@@ -48,10 +49,12 @@ func (s *Session) broadcastState() {
 				Position: pos,
 				Reason:   "buffering",
 			})
+			s.emitUI(tui.UIEvent{Type: tui.UIBufferingStart})
 		} else if !buffering && wasBuf {
 			s.transport.Send(p2p.MsgResume, &p2p.ResumePayload{
 				Position: pos,
 			})
+			s.emitUI(tui.UIEvent{Type: tui.UIBufferingStop})
 		}
 	}
 
@@ -67,4 +70,10 @@ func (s *Session) broadcastState() {
 		Buffering: buffering,
 		SyncDelta: syncDelta,
 	})
+
+	s.emitUI(tui.UIEvent{Type: tui.UIStateUpdate, Data: tui.StateData{
+		Position:  time.Duration(pos * float64(time.Second)),
+		Paused:    paused,
+		SyncDelta: time.Duration(syncDelta) * time.Millisecond,
+	}})
 }

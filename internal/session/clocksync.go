@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pranav718/tsuna/internal/p2p"
+	"github.com/pranav718/tsuna/internal/tui"
 )
 
 const clockSyncInterval = 2 * time.Second
@@ -57,4 +58,10 @@ func (s *Session) handlePong(env *p2p.Envelope) {
 
 	s.reconciler.RecordSample(env.SenderID, rtt, offset)
 	log.Printf("[clocksync] peer=%s rtt=%v offset=%v", env.SenderID, rtt, offset)
+
+	s.emitUI(tui.UIEvent{Type: tui.UIClockSync, Data: tui.ClockSyncData{
+		PeerID: env.SenderID,
+		RTT:    rtt,
+		Offset: offset,
+	}})
 }

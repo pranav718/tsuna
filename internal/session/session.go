@@ -10,6 +10,7 @@ import (
 	"github.com/pranav718/tsuna/internal/p2p"
 	"github.com/pranav718/tsuna/internal/room"
 	tsync "github.com/pranav718/tsuna/internal/sync"
+	"github.com/pranav718/tsuna/internal/tui"
 )
 
 type Config struct {
@@ -19,6 +20,7 @@ type Config struct {
 	IsHost     bool
 	MpvSocket  string
 	Transport  *p2p.Transport
+	UIEvents   chan<- tui.UIEvent
 }
 
 type Session struct {
@@ -33,6 +35,16 @@ type Session struct {
 	mu          sync.RWMutex
 	lastPeerMsg time.Time
 	buffering   bool
+}
+
+func (s *Session) emitUI(ev tui.UIEvent) {
+	if s.cfg.UIEvents == nil {
+		return
+	}
+	select {
+	case s.cfg.UIEvents <- ev:
+	default:
+	}
 }
 
 func New(cfg Config) *Session {
@@ -118,6 +130,9 @@ func (s *Session) handleMessage(env *p2p.Envelope) {
 		if p2p.DecodePayload(env, &pl) == nil {
 			log.Printf("[session] peer hello: %s (v%s, host=%v)", pl.DisplayName, pl.Version, pl.IsHost)
 			s.room.Send(room.Event{PeerID: env.SenderID, Type: room.EvPeerReady})
+			s.emitUI(tui.UIEvent{Type: tui.UIPeerHello, Data: tui.PeerData{
+				PeerID: env.SenderID, DisplayName: pl.DisplayName,
+			}})
 		}
 
 	case p2p.MsgHeartbeat:
@@ -125,6 +140,7 @@ func (s *Session) handleMessage(env *p2p.Envelope) {
 	case p2p.MsgBye:
 		log.Printf("[session] peer %s disconnected", env.SenderID)
 		s.room.Send(room.Event{PeerID: env.SenderID, Type: room.EvPeerLeft})
+		s.emitUI(tui.UIEvent{Type: tui.UIPeerBye})
 
 	case p2p.MsgPing:
 		s.handlePing(env)
@@ -205,6 +221,12 @@ func (s *Session) applyCorrection(c tsync.Correction) {
 		s.mpv.Seek(c.TargetPos)
 		s.mpv.Play()
 	}
+
+	s.emitUI(tui.UIEvent{Type: tui.UICorrection, Data: tui.CorrectionData{
+		CorrType: c.Type.String(),
+		Delta:    c.Delta,
+		Target:   c.TargetPos,
+	}})
 }
 
 func (s *Session) executeCommand(cmd room.Command) {
