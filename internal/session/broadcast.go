@@ -26,11 +26,33 @@ func (s *Session) broadcastLoop(ctx context.Context) {
 func (s *Session) broadcastState() {
 	pos := float64(0)
 	paused := true
+	buffering := false
 
 	if s.mpvOK {
 		st := s.mpv.State()
 		pos = st.Position.Seconds()
 		paused = st.Paused
+
+		isBuffering, err := s.mpv.IsBuffering()
+		if err == nil {
+			buffering = isBuffering
+		}
+
+		s.mu.Lock()
+		wasBuf := s.buffering
+		s.buffering = buffering
+		s.mu.Unlock()
+
+		if buffering && !wasBuf {
+			s.transport.Send(p2p.MsgHold, &p2p.HoldPayload{
+				Position: pos,
+				Reason:   "buffering",
+			})
+		} else if !buffering && wasBuf {
+			s.transport.Send(p2p.MsgResume, &p2p.ResumePayload{
+				Position: pos,
+			})
+		}
 	}
 
 	deltas := s.delta.Deltas()
@@ -42,7 +64,7 @@ func (s *Session) broadcastState() {
 	s.transport.Send(p2p.MsgStateUpdate, &p2p.StateUpdatePayload{
 		Position:  pos,
 		Paused:    paused,
-		Buffering: false,
+		Buffering: buffering,
 		SyncDelta: syncDelta,
 	})
 }

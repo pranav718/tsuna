@@ -140,6 +140,18 @@ func (b *Bridge) IsPaused() (bool, error) {
 	return paused, nil
 }
 
+func (b *Bridge) IsBuffering() (bool, error) {
+	resp, err := b.sendCommand("get_property", "paused-for-cache")
+	if err != nil {
+		return false, err
+	}
+	buf, ok := resp.Data.(bool)
+	if !ok {
+		return false, fmt.Errorf("mpv: unexpected paused-for-cache type %T", resp.Data)
+	}
+	return buf, nil
+}
+
 func (b *Bridge) LoadFile(path string) error {
 	_, err := b.sendCommand("loadfile", path, "replace")
 	return err
