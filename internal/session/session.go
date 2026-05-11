@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/pranav718/tsuna/internal/mpv"
@@ -28,6 +29,10 @@ type Session struct {
 	reconciler *tsync.Reconciler
 	delta      *tsync.DeltaEngine
 	mpvOK      bool
+
+	mu          sync.RWMutex
+	lastPeerMsg time.Time
+	buffering   bool
 }
 
 func New(cfg Config) *Session {
@@ -77,6 +82,8 @@ func (s *Session) Run(ctx context.Context) error {
 
 	go s.clockSyncLoop(ctx)
 	go s.broadcastLoop(ctx)
+	go s.heartbeatLoop(ctx)
+	go s.watchdogLoop(ctx)
 
 	log.Printf("[session] running — room=%s peer=%s host=%v", s.cfg.RoomCode, s.cfg.RemoteID, s.cfg.IsHost)
 
@@ -103,6 +110,8 @@ func (s *Session) loop(ctx context.Context) error {
 }
 
 func (s *Session) handleMessage(env *p2p.Envelope) {
+	s.touchPeerSeen()
+
 	switch env.Type {
 	case p2p.MsgHello:
 		var pl p2p.HelloPayload
