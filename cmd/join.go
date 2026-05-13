@@ -32,34 +32,41 @@ func runJoin(cmd *cobra.Command, args []string) error {
 	code := strings.ToUpper(strings.TrimSpace(args[0]))
 
 	if len(code) != 6 {
-		return fmt.Errorf("invalid room code %q — must be exactly 6 characters", code)
+		return fmt.Errorf("invalid room code %q -- must be exactly 6 characters", code)
 	}
 
 	printBanner()
-	printStep(1, fmt.Sprintf("joining room %s", pink.Render(code)))
 
 	localID := generatePeerID()
 
-	printStep(2, "discovering public endpoint via STUN...")
-	pub, err := p2p.DiscoverPublicEndpoint()
-	if err != nil {
-		printError("STUN discovery failed")
-		return fmt.Errorf("STUN discovery failed: %w", err)
-	}
-	printStepDone(2, fmt.Sprintf("public endpoint: %s", dim.Render(pub.String())))
-
-	printStep(3, "registering with signaling server...")
-	resp, err := sig.Register(signalServer, sig.RegisterRequest{
-		RoomCode:   code,
-		PeerID:     localID,
-		PublicIP:   pub.IP.String(),
-		PublicPort: pub.Port,
+	var pub p2p.PublicEndpoint
+	err := runWithSpinner(1, "discovering public endpoint via STUN", func() error {
+		var e error
+		pub, e = p2p.DiscoverPublicEndpoint()
+		return e
 	})
 	if err != nil {
-		printError("signaling registration failed")
+		printError("STUN discovery failed :(")
+		return fmt.Errorf("STUN discovery failed: %w", err)
+	}
+	printStepDone(1, fmt.Sprintf("public endpoint: %s", dim.Render(pub.String())))
+
+	var resp *sig.RegisterResponse
+	err = runWithSpinner(2, "registering with signaling server", func() error {
+		var e error
+		resp, e = sig.Register(signalServer, sig.RegisterRequest{
+			RoomCode:   code,
+			PeerID:     localID,
+			PublicIP:   pub.IP.String(),
+			PublicPort: pub.Port,
+		})
+		return e
+	})
+	if err != nil {
+		printError("signaling registration failed :(")
 		return fmt.Errorf("signaling registration failed: %w", err)
 	}
-	printStepDone(3, "registered")
+	printStepDone(2, fmt.Sprintf("joined room %s", pink.Render(code)))
 
 	var hostPeer sig.PeerInfo
 	for _, p := range resp.Peers {
@@ -74,27 +81,26 @@ func runJoin(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no host found in room %s", code)
 	}
 
-	printStepDone(4, fmt.Sprintf("host found: %s", green.Render(hostPeer.PeerID)))
+	printStepDone(3, fmt.Sprintf("host found: %s", green.Render(hostPeer.PeerID)))
 
-	printStep(5, "punching through NAT...")
 	remoteIP := net.ParseIP(hostPeer.PublicIP)
 	peerEP := p2p.PeerEndpoint{IP: remoteIP, Port: hostPeer.PublicPort}
 
-	puncher, err := p2p.NewPuncher(peerEP, p2p.DefaultPunchConfig())
+	var result p2p.PunchResult
+	err = runWithSpinner(4, "punching through NAT", func() error {
+		puncher, e := p2p.NewPuncher(peerEP, p2p.DefaultPunchConfig())
+		if e != nil {
+			return e
+		}
+		result, e = puncher.Punch()
+		return e
+	})
 	if err != nil {
-		printError("punch setup failed")
-		return fmt.Errorf("punch setup failed: %w", err)
-	}
-
-	result, err := puncher.Punch()
-	if err != nil {
-		printError("hole punch timed out")
+		printError("hole punch timed out :(")
 		return fmt.Errorf("hole punch failed: %w", err)
 	}
 
 	printConnected(result.RTT.String())
-	printStep(6, "launching dashboard...")
-	fmt.Println()
 
 	transport := p2p.NewTransport(result.Conn, peerEP.UDPAddr(), localID, code)
 	transport.Start()
