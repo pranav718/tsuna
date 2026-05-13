@@ -229,9 +229,9 @@ func (m Model) renderPeers() string {
 
 func (m Model) renderPlayback() string {
 	title := SectionTitle.Render("  PLAYBACK")
-	icon := "▸"
+	icon := ">"
 	if m.localPaused {
-		icon = "❚❚"
+		icon = "||"
 	}
 	pos := formatDuration(m.localPos)
 	line := fmt.Sprintf("  %s  %s", icon, ValueText.Render(pos))
@@ -278,5 +278,5 @@ func truncate(s string, n int) string {
 	if len(s) <= n {
 		return s
 	}
-	return s[:n-1] + "…"
+	return s[:n-1] + "."
 }

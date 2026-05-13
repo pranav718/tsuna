@@ -26,22 +26,22 @@ var (
 	BadgePlaying = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(green).
-			SetString("▸ PLAYING")
+			SetString("> PLAYING")
 
 	BadgePaused = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(yellow).
-			SetString("❚❚ PAUSED")
+			SetString("|| PAUSED")
 
 	BadgeHolding = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(yellow).
-			SetString("⏳ HOLDING")
+			SetString(".. HOLDING")
 
 	BadgeIdle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(dimGray).
-			SetString("● IDLE")
+			SetString("-- IDLE")
 
 	SectionTitle = lipgloss.NewStyle().
 			Bold(true).
@@ -50,15 +50,15 @@ var (
 
 	PeerOnline = lipgloss.NewStyle().
 			Foreground(green).
-			SetString("●")
+			SetString("*")
 
 	PeerBuffering = lipgloss.NewStyle().
 			Foreground(yellow).
-			SetString("●")
+			SetString("*")
 
 	PeerOffline = lipgloss.NewStyle().
 			Foreground(red).
-			SetString("●")
+			SetString("*")
 
 	DimText = lipgloss.NewStyle().
 		Foreground(dimGray)
