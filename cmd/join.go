@@ -35,16 +35,20 @@ func runJoin(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid room code %q — must be exactly 6 characters", code)
 	}
 
+	printBanner()
+	printStep(1, fmt.Sprintf("joining room %s", pink.Render(code)))
+
 	localID := generatePeerID()
 
-	fmt.Printf("discovering public endpoint via STUN...\n")
+	printStep(2, "discovering public endpoint via STUN...")
 	pub, err := p2p.DiscoverPublicEndpoint()
 	if err != nil {
+		printError("STUN discovery failed")
 		return fmt.Errorf("STUN discovery failed: %w", err)
 	}
-	fmt.Printf("public endpoint: %s\n", pub)
+	printStepDone(2, fmt.Sprintf("public endpoint: %s", dim.Render(pub.String())))
 
-	fmt.Printf("registering with signaling server...\n")
+	printStep(3, "registering with signaling server...")
 	resp, err := sig.Register(signalServer, sig.RegisterRequest{
 		RoomCode:   code,
 		PeerID:     localID,
@@ -52,8 +56,10 @@ func runJoin(cmd *cobra.Command, args []string) error {
 		PublicPort: pub.Port,
 	})
 	if err != nil {
+		printError("signaling registration failed")
 		return fmt.Errorf("signaling registration failed: %w", err)
 	}
+	printStepDone(3, "registered")
 
 	var hostPeer sig.PeerInfo
 	for _, p := range resp.Peers {
@@ -64,27 +70,31 @@ func runJoin(cmd *cobra.Command, args []string) error {
 	}
 
 	if hostPeer.PeerID == "" {
-		return fmt.Errorf("no host found in room %s — is anyone hosting?", code)
+		printError("no host found")
+		return fmt.Errorf("no host found in room %s", code)
 	}
 
-	fmt.Printf("host found: %s (%s:%d)\n", hostPeer.PeerID, hostPeer.PublicIP, hostPeer.PublicPort)
-	fmt.Printf("punching through NAT...\n")
+	printStepDone(4, fmt.Sprintf("host found: %s", green.Render(hostPeer.PeerID)))
 
+	printStep(5, "punching through NAT...")
 	remoteIP := net.ParseIP(hostPeer.PublicIP)
 	peerEP := p2p.PeerEndpoint{IP: remoteIP, Port: hostPeer.PublicPort}
 
 	puncher, err := p2p.NewPuncher(peerEP, p2p.DefaultPunchConfig())
 	if err != nil {
+		printError("punch setup failed")
 		return fmt.Errorf("punch setup failed: %w", err)
 	}
 
 	result, err := puncher.Punch()
 	if err != nil {
+		printError("hole punch timed out")
 		return fmt.Errorf("hole punch failed: %w", err)
 	}
 
-	fmt.Printf("connected! rtt=%v\n", result.RTT)
-	fmt.Printf("launching dashboard...\n\n")
+	printConnected(result.RTT.String())
+	printStep(6, "launching dashboard...")
+	fmt.Println()
 
 	transport := p2p.NewTransport(result.Conn, peerEP.UDPAddr(), localID, code)
 	transport.Start()
