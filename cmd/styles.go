@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -15,13 +17,15 @@ var (
 )
 
 var (
-	banner = lipgloss.NewStyle().Foreground(accentColor).Bold(true)
-	accent = lipgloss.NewStyle().Foreground(accentColor)
-	pink   = lipgloss.NewStyle().Foreground(pinkColor).Bold(true)
-	green  = lipgloss.NewStyle().Foreground(greenColor)
-	dim    = lipgloss.NewStyle().Foreground(dimColor)
-	warn   = lipgloss.NewStyle().Foreground(warnColor)
+	bannerStyle = lipgloss.NewStyle().Foreground(accentColor).Bold(true)
+	accent      = lipgloss.NewStyle().Foreground(accentColor)
+	pink        = lipgloss.NewStyle().Foreground(pinkColor).Bold(true)
+	green       = lipgloss.NewStyle().Foreground(greenColor)
+	dim         = lipgloss.NewStyle().Foreground(dimColor)
+	warn        = lipgloss.NewStyle().Foreground(warnColor)
 )
+
+var spinFrames = []string{"-", "\\", "|", "/"}
 
 func printBanner() {
 	box := lipgloss.NewStyle().
@@ -29,14 +33,37 @@ func printBanner() {
 		BorderForeground(accentColor).
 		Padding(0, 2)
 
-	title := banner.Render("TSUNA") + "  " + dim.Render("p2p synchronized video watching")
+	title := bannerStyle.Render("TSUNA") + "  " + dim.Render("p2p synchronized video watching")
 	fmt.Println(box.Render(title))
 	fmt.Println()
 }
 
-func printStep(num int, msg string) {
+func runWithSpinner(num int, label string, fn func() error) error {
 	marker := accent.Render(fmt.Sprintf("  [%d]", num))
-	fmt.Printf("%s %s\n", marker, msg)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- fn()
+	}()
+
+	frame := 0
+	ticker := time.NewTicker(80 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case err := <-done:
+			fmt.Fprintf(os.Stdout, "\r\033[K")
+			if err != nil {
+				fmt.Printf("%s %s %s\n", marker, label, warn.Render("failed"))
+			}
+			return err
+		case <-ticker.C:
+			spin := accent.Render(spinFrames[frame%len(spinFrames)])
+			fmt.Fprintf(os.Stdout, "\r%s %s %s", marker, label, spin)
+			frame++
+		}
+	}
 }
 
 func printStepDone(num int, msg string) {
@@ -44,16 +71,21 @@ func printStepDone(num int, msg string) {
 	fmt.Printf("%s %s %s\n", marker, msg, green.Render("ok"))
 }
 
-func printRoomCode(code string) {
-	box := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(pinkColor).
-		Padding(0, 2).
-		MarginLeft(4)
+func typewrite(s string, delay time.Duration) {
+	for _, c := range s {
+		fmt.Print(string(c))
+		time.Sleep(delay)
+	}
+}
 
-	inner := fmt.Sprintf("%s  %s", dim.Render("room code"), pink.Render(code))
+func printRoomCode(code string) {
 	fmt.Println()
-	fmt.Println(box.Render(inner))
+
+	label := dim.Render("room code") + "  "
+	fmt.Print("      " + label)
+
+	typewrite(pink.Render(code), 60*time.Millisecond)
+	fmt.Println()
 	fmt.Println()
 }
 
