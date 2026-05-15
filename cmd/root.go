@@ -9,6 +9,7 @@ import (
 var (
 	signalServer string
 	mpvSocket    string
+	localMode    bool
 )
 
 var rootCmd = &cobra.Command{
@@ -29,6 +30,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().StringVar(&signalServer, "signal-server", "http://localhost:8080", "signaling server URL")
 	rootCmd.PersistentFlags().StringVar(&mpvSocket, "mpv-socket", "/tmp/tsuna-mpv.sock", "mpv IPC socket path")
+	rootCmd.PersistentFlags().BoolVar(&localMode, "local", false, "use loopback for same-machine testing (skip STUN)")
 }
 
 func Execute() {

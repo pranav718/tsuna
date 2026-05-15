@@ -39,17 +39,29 @@ func runHost(cmd *cobra.Command, args []string) error {
 
 	localID := generatePeerID()
 
-	var pub p2p.PublicEndpoint
-	err = runWithSpinner(1, "discovering public endpoint via STUN", func() error {
-		var e error
-		pub, e = p2p.DiscoverPublicEndpoint()
-		return e
-	})
+	sock, err := net.ListenUDP("udp4", &net.UDPAddr{})
 	if err != nil {
-		printError("STUN discovery failed :(")
-		return fmt.Errorf("STUN discovery failed: %w", err)
+		return fmt.Errorf("failed to bind UDP socket: %w", err)
 	}
-	printStepDone(1, fmt.Sprintf("public endpoint: %s", dim.Render(pub.String())))
+
+	var pub p2p.PublicEndpoint
+	if localMode {
+		localAddr := sock.LocalAddr().(*net.UDPAddr)
+		pub = p2p.PublicEndpoint{IP: net.ParseIP("127.0.0.1"), Port: localAddr.Port}
+		printStepDone(1, fmt.Sprintf("local mode: %s", dim.Render(pub.String())))
+	} else {
+		err = runWithSpinner(1, "discovering public endpoint via STUN", func() error {
+			var e error
+			pub, e = p2p.DiscoverWithConn(sock)
+			return e
+		})
+		if err != nil {
+			sock.Close()
+			printError("STUN discovery failed :(")
+			return fmt.Errorf("STUN discovery failed: %w", err)
+		}
+		printStepDone(1, fmt.Sprintf("public endpoint: %s", dim.Render(pub.String())))
+	}
 
 	err = runWithSpinner(2, "registering with signaling server", func() error {
 		_, e := sig.Register(signalServer, sig.RegisterRequest{
@@ -61,6 +73,7 @@ func runHost(cmd *cobra.Command, args []string) error {
 		return e
 	})
 	if err != nil {
+		sock.Close()
 		printError("signaling registration failed :(")
 		return fmt.Errorf("signaling registration failed: %w", err)
 	}
@@ -74,6 +87,7 @@ func runHost(cmd *cobra.Command, args []string) error {
 	for {
 		peers, err := sig.GetPeers(signalServer, code)
 		if err != nil {
+			sock.Close()
 			return fmt.Errorf("failed to poll peers: %w", err)
 		}
 		for _, p := range peers {
@@ -93,14 +107,13 @@ peerFound:
 
 	var result p2p.PunchResult
 	err = runWithSpinner(4, "punching through NAT", func() error {
-		puncher, e := p2p.NewPuncher(peerEP, p2p.DefaultPunchConfig())
-		if e != nil {
-			return e
-		}
+		puncher := p2p.NewPuncherWithConn(sock, peerEP, p2p.DefaultPunchConfig())
+		var e error
 		result, e = puncher.Punch()
 		return e
 	})
 	if err != nil {
+		sock.Close()
 		printError("hole punch timed out :(")
 		return fmt.Errorf("hole punch failed: %w", err)
 	}
