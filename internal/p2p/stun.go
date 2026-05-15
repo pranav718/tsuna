@@ -59,6 +59,41 @@ func DiscoverPublicEndpointFrom(servers []string) (PublicEndpoint, error) {
 	return PublicEndpoint{}, fmt.Errorf("stun: all servers failed: %w", lastErr)
 }
 
+func DiscoverWithConn(conn *net.UDPConn) (PublicEndpoint, error) {
+	for _, srv := range DefaultSTUNServers {
+		ep, err := querySTUNWithConn(conn, srv)
+		if err == nil {
+			return ep, nil
+		}
+	}
+	return PublicEndpoint{}, fmt.Errorf("stun: all servers failed with shared socket")
+}
+
+func querySTUNWithConn(conn *net.UDPConn, addr string) (PublicEndpoint, error) {
+	raddr, err := net.ResolveUDPAddr("udp4", addr)
+	if err != nil {
+		return PublicEndpoint{}, fmt.Errorf("resolve %s: %w", addr, err)
+	}
+
+	conn.SetDeadline(time.Now().Add(3 * time.Second))
+	defer conn.SetDeadline(time.Time{})
+
+	txID := randomTxID()
+	req := buildBindingRequest(txID)
+
+	if _, err := conn.WriteToUDP(req, raddr); err != nil {
+		return PublicEndpoint{}, fmt.Errorf("send: %w", err)
+	}
+
+	buf := make([]byte, 512)
+	n, _, err := conn.ReadFromUDP(buf)
+	if err != nil {
+		return PublicEndpoint{}, fmt.Errorf("recv: %w", err)
+	}
+
+	return parseBindingResponse(buf[:n], txID)
+}
+
 func querySTUN(addr string) (PublicEndpoint, error) {
 	raddr, err := net.ResolveUDPAddr("udp4", addr)
 	if err != nil {

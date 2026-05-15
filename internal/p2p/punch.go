@@ -94,6 +94,17 @@ func NewPuncher(remote PeerEndpoint, cfg PunchConfig) (*Puncher, error) {
 	}, nil
 }
 
+func NewPuncherWithConn(conn *net.UDPConn, remote PeerEndpoint, cfg PunchConfig) *Puncher {
+	return &Puncher{
+		cfg:      cfg,
+		local:    conn,
+		remote:   remote,
+		state:    StateIdle,
+		resultCh: make(chan PunchResult, 1),
+		stopCh:   make(chan struct{}),
+	}
+}
+
 func (p *Puncher) Punch() (PunchResult, error) {
 	p.setState(StateProbing)
 
