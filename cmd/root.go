@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/pranav718/tsuna/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -28,9 +29,11 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&signalServer, "signal-server", "http://localhost:8080", "signaling server URL")
-	rootCmd.PersistentFlags().StringVar(&mpvSocket, "mpv-socket", "/tmp/tsuna-mpv.sock", "mpv IPC socket path")
-	rootCmd.PersistentFlags().BoolVar(&localMode, "local", false, "use loopback for same-machine testing (skip STUN)")
+	cfg := config.Load()
+
+	rootCmd.PersistentFlags().StringVar(&signalServer, "signal-server", cfg.SignalServer, "signaling server URL")
+	rootCmd.PersistentFlags().StringVar(&mpvSocket, "mpv-socket", cfg.MpvSocket, "mpv IPC socket path")
+	rootCmd.PersistentFlags().BoolVar(&localMode, "local", cfg.LocalMode, "use loopback for same-machine testing (skip STUN)")
 }
 
 func Execute() {

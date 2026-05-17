@@ -100,6 +100,7 @@ func runJoin(cmd *cobra.Command, args []string) error {
 	remoteIP := net.ParseIP(hostPeer.PublicIP)
 	peerEP := p2p.PeerEndpoint{IP: remoteIP, Port: hostPeer.PublicPort}
 
+	var sender p2p.Sender
 	var result p2p.PunchResult
 	err = runWithSpinner(4, "punching through NAT", func() error {
 		puncher := p2p.NewPuncherWithConn(sock, peerEP, p2p.DefaultPunchConfig())
@@ -109,14 +110,27 @@ func runJoin(cmd *cobra.Command, args []string) error {
 	})
 	if err != nil {
 		sock.Close()
-		printError("hole punch timed out :(")
-		return fmt.Errorf("hole punch failed: %w", err)
+		printError("hole punch failed, falling back to relay")
+
+		var relay *p2p.RelayTransport
+		err = runWithSpinner(5, "connecting via relay", func() error {
+			var e error
+			relay, e = p2p.NewRelayTransport(signalServer, code, localID)
+			return e
+		})
+		if err != nil {
+			printError("relay connection failed :(")
+			return fmt.Errorf("relay failed: %w", err)
+		}
+		printStepDone(5, "relayed through signal server")
+		relay.Start()
+		sender = relay
+	} else {
+		printConnected(result.RTT.String())
+		transport := p2p.NewTransport(result.Conn, peerEP.UDPAddr(), localID, code)
+		transport.Start()
+		sender = transport
 	}
-
-	printConnected(result.RTT.String())
-
-	transport := p2p.NewTransport(result.Conn, peerEP.UDPAddr(), localID, code)
-	transport.Start()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
@@ -129,7 +143,7 @@ func runJoin(cmd *cobra.Command, args []string) error {
 		RoomCode:  code,
 		IsHost:    false,
 		MpvSocket: mpvSocket,
-		Transport: transport,
+		Transport: sender,
 		UIEvents:  uiCh,
 	})
 
@@ -145,6 +159,6 @@ func runJoin(cmd *cobra.Command, args []string) error {
 	}
 
 	sig.Leave(signalServer, code, localID)
-	transport.Close()
+	sender.Close()
 	return nil
 }
