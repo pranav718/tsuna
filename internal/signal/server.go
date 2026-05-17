@@ -58,6 +58,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/peers", s.handlePeers)
 	mux.HandleFunc("/leave", s.handleLeave)
 	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/rooms", s.handleRooms)
 	mux.HandleFunc("/relay", s.handleRelay)
 
 	log.Printf("[signal] server listening on %s", s.addr)
@@ -170,6 +171,32 @@ func (s *Server) handleLeave(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+type RoomSummary struct {
+	Code      string     `json:"code"`
+	PeerCount int        `json:"peer_count"`
+	Peers     []PeerInfo `json:"peers"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+func (s *Server) handleRooms(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	rooms := make([]RoomSummary, 0, len(s.rooms))
+	for _, room := range s.rooms {
+		room.mu.RLock()
+		rooms = append(rooms, RoomSummary{
+			Code:      room.Code,
+			PeerCount: len(room.Peers),
+			Peers:     peersSlice(room.Peers),
+			CreatedAt: room.CreatedAt,
+		})
+		room.mu.RUnlock()
+	}
+	s.mu.RUnlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(rooms)
 }
 
 func peersSlice(m map[string]PeerInfo) []PeerInfo {

@@ -67,3 +67,21 @@ func Leave(serverURL, roomCode, peerID string) error {
 	defer resp.Body.Close()
 	return nil
 }
+
+func GetRooms(serverURL string) ([]RoomSummary, error) {
+	resp, err := httpClient.Get(serverURL + "/rooms")
+	if err != nil {
+		return nil, fmt.Errorf("signal: get rooms: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("signal: get rooms: status %d", resp.StatusCode)
+	}
+
+	var rooms []RoomSummary
+	if err := json.NewDecoder(resp.Body).Decode(&rooms); err != nil {
+		return nil, fmt.Errorf("signal: decode rooms: %w", err)
+	}
+	return rooms, nil
+}
