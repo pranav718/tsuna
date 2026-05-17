@@ -48,9 +48,13 @@ func (t *Transport) Send(msgType MsgType, payload any) error {
 	return nil
 }
 
-func (t *Transport) Close() error {
+func (t *Transport) Recv() <-chan *Envelope {
+	return t.RecvCh
+}
+
+func (t *Transport) Close() {
 	close(t.stopCh)
-	return t.conn.Close()
+	t.conn.Close()
 }
 
 func (t *Transport) readLoop() {
