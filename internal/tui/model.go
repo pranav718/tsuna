@@ -30,6 +30,9 @@ type Model struct {
 	height      int
 	eventCh     <-chan UIEvent
 	cancelFunc  func()
+
+	queueItems   []QueueItemData
+	queueCurrent int
 }
 
 func NewModel(roomCode, localID, remoteID string, isHost bool, eventCh <-chan UIEvent, cancel func()) Model {
@@ -120,6 +123,12 @@ func (m *Model) handleEvent(ev UIEvent) {
 		if s, ok := ev.Data.(string); ok {
 			m.addLog(s)
 		}
+
+	case UIQueueUpdate:
+		if d, ok := ev.Data.(QueueData); ok {
+			m.queueItems = d.Items
+			m.queueCurrent = d.Current
+		}
 	}
 }
 
@@ -138,6 +147,7 @@ func (m Model) View() string {
 	header := m.renderHeader()
 	peers := m.renderPeers()
 	playback := m.renderPlayback()
+	q := m.renderQueue()
 	logs := m.renderLogs()
 
 	b.WriteString(header)
@@ -145,6 +155,10 @@ func (m Model) View() string {
 	b.WriteString(peers)
 	b.WriteString("\n")
 	b.WriteString(playback)
+	if q != "" {
+		b.WriteString("\n")
+		b.WriteString(q)
+	}
 	b.WriteString("\n")
 	b.WriteString(logs)
 	b.WriteString("\n\n")
@@ -279,4 +293,32 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n-1] + "."
+}
+
+func (m Model) renderQueue() string {
+	if len(m.queueItems) == 0 {
+		return ""
+	}
+
+	title := SectionTitle.Render("  QUEUE")
+	lines := make([]string, len(m.queueItems))
+	for i, item := range m.queueItems {
+		marker := "  "
+		if i == m.queueCurrent {
+			marker = "> "
+		}
+
+		name := item.Filename
+		if idx := strings.LastIndex(name, "/"); idx >= 0 {
+			name = name[idx+1:]
+		}
+		name = truncate(name, 40)
+
+		lines[i] = fmt.Sprintf("  %s%s  %s",
+			marker,
+			ValueText.Render(name),
+			DimText.Render("("+item.AddedBy+")"),
+		)
+	}
+	return fmt.Sprintf("%s\n%s", title, strings.Join(lines, "\n"))
 }

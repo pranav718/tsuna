@@ -12,6 +12,7 @@ const (
 	UICorrection
 	UIBufferingStart
 	UIBufferingStop
+	UIQueueUpdate
 	UILog
 )
 
@@ -41,4 +42,15 @@ type CorrectionData struct {
 type PeerData struct {
 	PeerID      string
 	DisplayName string
+}
+
+type QueueItemData struct {
+	ID       string
+	Filename string
+	AddedBy  string
+}
+
+type QueueData struct {
+	Items   []QueueItemData
+	Current int
 }

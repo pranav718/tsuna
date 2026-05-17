@@ -8,6 +8,7 @@ import (
 
 	"github.com/pranav718/tsuna/internal/mpv"
 	"github.com/pranav718/tsuna/internal/p2p"
+	"github.com/pranav718/tsuna/internal/queue"
 	"github.com/pranav718/tsuna/internal/room"
 	tsync "github.com/pranav718/tsuna/internal/sync"
 	"github.com/pranav718/tsuna/internal/tui"
@@ -30,6 +31,7 @@ type Session struct {
 	room       *room.Room
 	reconciler *tsync.Reconciler
 	delta      *tsync.DeltaEngine
+	queue      *queue.Queue
 	mpvOK      bool
 
 	mu          sync.RWMutex
@@ -51,6 +53,7 @@ func New(cfg Config) *Session {
 	return &Session{
 		cfg:       cfg,
 		transport: cfg.Transport,
+		queue:     queue.New(),
 	}
 }
 
@@ -198,6 +201,40 @@ func (s *Session) handleMessage(env *p2p.Envelope) {
 	case p2p.MsgResume:
 		log.Printf("[session] peer %s ready to resume", env.SenderID)
 		s.room.Send(room.Event{PeerID: env.SenderID, Type: room.EvPeerResumed})
+
+	case p2p.MsgQueueAdd:
+		var pl p2p.QueueAddPayload
+		if p2p.DecodePayload(env, &pl) == nil {
+			s.queue.Add(pl.Item.Filename, pl.Item.AddedBy)
+			log.Printf("[session] queue add: %s (by %s)", pl.Item.Filename, pl.Item.AddedBy)
+			s.emitUI(tui.UIEvent{Type: tui.UIQueueUpdate, Data: tui.QueueData{
+				Items:   s.queueItems(),
+				Current: s.queue.CurrentIndex(),
+			}})
+		}
+
+	case p2p.MsgQueueNext:
+		if item, ok := s.queue.Next(); ok {
+			log.Printf("[session] queue next: %s", item.Filename)
+			if s.mpvOK {
+				s.mpv.LoadFile(item.Filename)
+			}
+			s.emitUI(tui.UIEvent{Type: tui.UIQueueUpdate, Data: tui.QueueData{
+				Items:   s.queueItems(),
+				Current: s.queue.CurrentIndex(),
+			}})
+		}
+
+	case p2p.MsgQueueRemove:
+		var pl p2p.QueueRemovePayload
+		if p2p.DecodePayload(env, &pl) == nil {
+			s.queue.Remove(pl.ItemID)
+			log.Printf("[session] queue remove: %s", pl.ItemID)
+			s.emitUI(tui.UIEvent{Type: tui.UIQueueUpdate, Data: tui.QueueData{
+				Items:   s.queueItems(),
+				Current: s.queue.CurrentIndex(),
+			}})
+		}
 	}
 }
 
@@ -272,4 +309,49 @@ func (s *Session) positionFunc() tsync.PositionFunc {
 		st := s.mpv.State()
 		return st.Position, st.Paused, nil
 	}
+}
+
+func (s *Session) QueueAdd(filename string) {
+	item := s.queue.Add(filename, s.cfg.LocalID)
+	s.transport.Send(p2p.MsgQueueAdd, &p2p.QueueAddPayload{
+		Item: p2p.QueueItem{
+			ID:       item.ID,
+			Filename: item.Filename,
+			AddedBy:  item.AddedBy,
+		},
+	})
+	s.emitUI(tui.UIEvent{Type: tui.UIQueueUpdate, Data: tui.QueueData{
+		Items:   s.queueItems(),
+		Current: s.queue.CurrentIndex(),
+	}})
+}
+
+func (s *Session) QueueNext() {
+	item, ok := s.queue.Next()
+	if !ok {
+		return
+	}
+	if s.mpvOK {
+		s.mpv.LoadFile(item.Filename)
+	}
+	s.transport.Send(p2p.MsgQueueNext, &p2p.QueueNextPayload{
+		NextItemID: item.ID,
+	})
+	s.emitUI(tui.UIEvent{Type: tui.UIQueueUpdate, Data: tui.QueueData{
+		Items:   s.queueItems(),
+		Current: s.queue.CurrentIndex(),
+	}})
+}
+
+func (s *Session) queueItems() []tui.QueueItemData {
+	items := s.queue.Items()
+	out := make([]tui.QueueItemData, len(items))
+	for i, item := range items {
+		out[i] = tui.QueueItemData{
+			ID:       item.ID,
+			Filename: item.Filename,
+			AddedBy:  item.AddedBy,
+		}
+	}
+	return out
 }
