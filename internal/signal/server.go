@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type PeerInfo struct {
@@ -20,6 +22,9 @@ type Room struct {
 	Peers     map[string]PeerInfo `json:"peers"`
 	CreatedAt time.Time           `json:"created_at"`
 	mu        sync.RWMutex
+
+	relayConns map[string]*websocket.Conn
+	relayMu    sync.RWMutex
 }
 
 type Server struct {
@@ -53,6 +58,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/peers", s.handlePeers)
 	mux.HandleFunc("/leave", s.handleLeave)
 	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/relay", s.handleRelay)
 
 	log.Printf("[signal] server listening on %s", s.addr)
 	return http.ListenAndServe(s.addr, mux)
@@ -172,4 +178,64 @@ func peersSlice(m map[string]PeerInfo) []PeerInfo {
 		out = append(out, p)
 	}
 	return out
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
+
+func (s *Server) handleRelay(w http.ResponseWriter, r *http.Request) {
+	roomCode := r.URL.Query().Get("room")
+	peerID := r.URL.Query().Get("peer")
+	if roomCode == "" || peerID == "" {
+		http.Error(w, "missing room or peer param", http.StatusBadRequest)
+		return
+	}
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("[relay] upgrade failed: %v", err)
+		return
+	}
+
+	s.mu.RLock()
+	room, exists := s.rooms[roomCode]
+	s.mu.RUnlock()
+
+	if !exists {
+		conn.Close()
+		return
+	}
+
+	room.relayMu.Lock()
+	if room.relayConns == nil {
+		room.relayConns = make(map[string]*websocket.Conn)
+	}
+	room.relayConns[peerID] = conn
+	room.relayMu.Unlock()
+
+	log.Printf("[relay] peer %s connected to room %s", peerID, roomCode)
+
+	defer func() {
+		room.relayMu.Lock()
+		delete(room.relayConns, peerID)
+		room.relayMu.Unlock()
+		conn.Close()
+		log.Printf("[relay] peer %s disconnected from room %s", peerID, roomCode)
+	}()
+
+	for {
+		msgType, data, err := conn.ReadMessage()
+		if err != nil {
+			return
+		}
+
+		room.relayMu.RLock()
+		for id, peer := range room.relayConns {
+			if id != peerID {
+				_ = peer.WriteMessage(msgType, data)
+			}
+		}
+		room.relayMu.RUnlock()
+	}
 }

@@ -19,13 +19,13 @@ type Config struct {
 	RoomCode   string
 	IsHost     bool
 	MpvSocket  string
-	Transport  *p2p.Transport
+	Transport  p2p.Sender
 	UIEvents   chan<- tui.UIEvent
 }
 
 type Session struct {
 	cfg        Config
-	transport  *p2p.Transport
+	transport  p2p.Sender
 	mpv        *mpv.Bridge
 	room       *room.Room
 	reconciler *tsync.Reconciler
@@ -109,7 +109,7 @@ func (s *Session) loop(ctx context.Context) error {
 			s.transport.Send(p2p.MsgBye, &p2p.ByePayload{Reason: "session ended"})
 			return nil
 
-		case env := <-s.transport.RecvCh:
+		case env := <-s.transport.Recv():
 			s.handleMessage(env)
 
 		case c := <-s.delta.CorrectionCh:
