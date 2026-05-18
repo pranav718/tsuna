@@ -8,9 +8,9 @@ import (
 
 const SyncTolerance = 40 * time.Millisecond
 
-const MicroSeekThreshold = 10 * time.Millisecond
+const MicroSeekThreshold = 5 * time.Millisecond
 
-const MaxSeekDelta = 5 * time.Second
+const MaxSeekDelta = 2 * time.Second
 
 type PeerPosition struct {
 	PeerID    string
@@ -78,9 +78,9 @@ func NewDeltaEngine(localID, hostID string, isHost bool, getPos PositionFunc) *D
 		localID:      localID,
 		hostID:       hostID,
 		getPos:       getPos,
-		tickRate:     100 * time.Millisecond,
+		tickRate:     50 * time.Millisecond,
 		peers:        make(map[string]*PeerPosition),
-		cooldown:     250 * time.Millisecond,
+		cooldown:     150 * time.Millisecond,
 		CorrectionCh: make(chan Correction, 32),
 		stopCh:       make(chan struct{}),
 	}
@@ -191,7 +191,7 @@ func (e *DeltaEngine) tickPeer(localPos time.Duration, localPaused bool) {
 
 	default:
 
-		target := hostPos + (SyncTolerance / 2)
+		target := hostPos + (delta / 2)
 		e.emit(Correction{
 			Type:      CorrectionMicroSeek,
 			TargetPos: target,
