@@ -60,13 +60,14 @@ func New(cfg Config) *Session {
 func (s *Session) Run(ctx context.Context) error {
 	s.mpv = mpv.NewBridge(s.cfg.MpvSocket)
 	if err := s.mpv.Connect(); err != nil {
-		log.Printf("[session] mpv not connected: %v (sync will run without playback control)", err)
+		log.Printf("[session] mpv not connected: %v (will retry in background)", err)
 		s.mpvOK = false
 	} else {
 		s.mpvOK = true
-		defer s.mpv.Close()
 		log.Printf("[session] connected to mpv at %s", s.cfg.MpvSocket)
 	}
+
+	go s.mpvReconnectLoop(ctx)
 
 	hostID := s.cfg.LocalID
 	if !s.cfg.IsHost {
@@ -143,7 +144,7 @@ func (s *Session) handleMessage(env *p2p.Envelope) {
 	case p2p.MsgBye:
 		log.Printf("[session] peer %s disconnected", env.SenderID)
 		s.room.Send(room.Event{PeerID: env.SenderID, Type: room.EvPeerLeft})
-		s.emitUI(tui.UIEvent{Type: tui.UIPeerBye})
+		s.emitUI(tui.UIEvent{Type: tui.UIPeerBye, Data: tui.PeerData{PeerID: env.SenderID}})
 
 	case p2p.MsgPing:
 		s.handlePing(env)
@@ -354,4 +355,33 @@ func (s *Session) queueItems() []tui.QueueItemData {
 		}
 	}
 	return out
+}
+
+func (s *Session) mpvReconnectLoop(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			if s.mpvOK {
+				s.mpv.Close()
+			}
+			return
+		case <-ticker.C:
+			if s.mpvOK {
+				if _, _, err := s.positionFunc()(); err != nil {
+					log.Printf("[session] mpv disconnected, will retry")
+					s.mpvOK = false
+					s.emitUI(tui.UIEvent{Type: tui.UILog, Data: "mpv disconnected. retrying"})
+				}
+			} else {
+				if err := s.mpv.Connect(); err == nil {
+					s.mpvOK = true
+					log.Printf("[session] mpv reconnected")
+					s.emitUI(tui.UIEvent{Type: tui.UILog, Data: "mpv reconnected"})
+				}
+			}
+		}
+	}
 }

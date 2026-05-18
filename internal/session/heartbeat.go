@@ -7,6 +7,7 @@ import (
 
 	"github.com/pranav718/tsuna/internal/p2p"
 	"github.com/pranav718/tsuna/internal/room"
+	"github.com/pranav718/tsuna/internal/tui"
 )
 
 const (
@@ -33,6 +34,8 @@ func (s *Session) watchdogLoop(ctx context.Context) {
 	ticker := time.NewTicker(watchdogInterval)
 	defer ticker.Stop()
 
+	peerLost := false
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -47,8 +50,20 @@ func (s *Session) watchdogLoop(ctx context.Context) {
 			}
 
 			if time.Since(lastSeen) > peerTimeout {
-				log.Printf("[session] peer %s timed out (no messages for %v)", s.cfg.RemoteID, peerTimeout)
-				s.room.Send(room.Event{PeerID: s.cfg.RemoteID, Type: room.EvPeerLeft})
+				if !peerLost {
+					peerLost = true
+					log.Printf("[session] peer %s timed out (no messages for %v)", s.cfg.RemoteID, peerTimeout)
+					s.room.Send(room.Event{PeerID: s.cfg.RemoteID, Type: room.EvPeerLeft})
+					s.emitUI(tui.UIEvent{Type: tui.UIPeerBye})
+					s.emitUI(tui.UIEvent{Type: tui.UILog, Data: "peer lost. waiting for reconnection"})
+				}
+			} else if peerLost {
+				peerLost = false
+				log.Printf("[session] peer %s recovered", s.cfg.RemoteID)
+				s.emitUI(tui.UIEvent{Type: tui.UIPeerHello, Data: tui.PeerData{
+					PeerID: s.cfg.RemoteID, DisplayName: s.cfg.RemoteID,
+				}})
+				s.emitUI(tui.UIEvent{Type: tui.UILog, Data: "peer reconnected"})
 			}
 		}
 	}
