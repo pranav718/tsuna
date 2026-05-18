@@ -60,8 +60,14 @@ func (s *Session) broadcastState() {
 
 	deltas := s.delta.Deltas()
 	var syncDelta int64
-	if d, ok := deltas[s.cfg.RemoteID]; ok {
-		syncDelta = d.Milliseconds()
+	for _, d := range deltas {
+		ms := d.Milliseconds()
+		if ms < 0 {
+			ms = -ms
+		}
+		if ms > syncDelta || syncDelta == 0 {
+			syncDelta = d.Milliseconds()
+		}
 	}
 
 	s.transport.Send(p2p.MsgStateUpdate, &p2p.StateUpdatePayload{

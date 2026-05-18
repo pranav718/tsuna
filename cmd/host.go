@@ -81,74 +81,32 @@ func runHost(cmd *cobra.Command, args []string) error {
 
 	printRoomCode(code)
 	printInfo("peer id", localID)
-	printWaiting("share this code with your friend. waiting for them to join...")
+	printWaiting("share this code with your friends. waiting for them to join...")
 
-	var remotePeer sig.PeerInfo
-	for {
-		peers, err := sig.GetPeers(signalServer, code)
-		if err != nil {
-			sock.Close()
-			return fmt.Errorf("failed to poll peers: %w", err)
-		}
-		for _, p := range peers {
-			if p.PeerID != localID {
-				remotePeer = p
-				goto peerFound
-			}
-		}
-		time.Sleep(1 * time.Second)
-	}
+	peerSet := p2p.NewPeerSet()
 
-peerFound:
-	printStepDone(3, fmt.Sprintf("peer joined: %s", green.Render(remotePeer.PeerID)))
-
-	remoteIP := net.ParseIP(remotePeer.PublicIP)
-	peerEP := p2p.PeerEndpoint{IP: remoteIP, Port: remotePeer.PublicPort}
-
-	var sender p2p.Sender
-	var result p2p.PunchResult
-	err = runWithSpinner(4, "punching through NAT", func() error {
-		puncher := p2p.NewPuncherWithConn(sock, peerEP, p2p.DefaultPunchConfig())
-		var e error
-		result, e = puncher.Punch()
-		return e
-	})
+	// wait for first peer before launching TUI
+	firstPeer, err := waitForFirstPeer(signalServer, code, localID, sock, peerSet)
 	if err != nil {
 		sock.Close()
-		printError("hole punch failed, falling back to relay")
-
-		var relay *p2p.RelayTransport
-		err = runWithSpinner(5, "connecting via relay", func() error {
-			var e error
-			relay, e = p2p.NewRelayTransport(signalServer, code, localID)
-			return e
-		})
-		if err != nil {
-			printError("relay connection failed :(")
-			return fmt.Errorf("relay failed: %w", err)
-		}
-		printStepDone(5, "relayed through signal server")
-		relay.Start()
-		sender = relay
-	} else {
-		printConnected(result.RTT.String())
-		transport := p2p.NewTransport(result.Conn, peerEP.UDPAddr(), localID, code)
-		transport.Start()
-		sender = transport
+		return err
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
+	// keep polling for more peers in the background
+	go acceptMorePeers(ctx, signalServer, code, localID, peerSet)
+
 	uiCh := make(chan tui.UIEvent, 64)
 
 	sess := session.New(session.Config{
 		LocalID:   localID,
-		RemoteID:  remotePeer.PeerID,
+		RemoteID:  firstPeer,
 		RoomCode:  code,
 		IsHost:    true,
 		MpvSocket: mpvSocket,
-		Transport: sender,
+		Transport: peerSet,
 		UIEvents:  uiCh,
 	})
 
@@ -157,14 +115,101 @@ peerFound:
 		close(uiCh)
 	}()
 
-	model := tui.NewModel(code, localID, remotePeer.PeerID, true, uiCh, cancel)
+	model := tui.NewModel(code, localID, firstPeer, true, uiCh, cancel)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("tui error: %w", err)
 	}
 
 	sig.Leave(signalServer, code, localID)
-	sender.Close()
+	peerSet.Close()
+	return nil
+}
+
+func waitForFirstPeer(signalURL, code, localID string, sock *net.UDPConn, peerSet *p2p.PeerSet) (string, error) {
+	for {
+		peers, err := sig.GetPeers(signalURL, code)
+		if err != nil {
+			return "", fmt.Errorf("failed to poll peers: %w", err)
+		}
+		for _, p := range peers {
+			if p.PeerID != localID {
+				printStepDone(3, fmt.Sprintf("peer joined: %s", green.Render(p.PeerID)))
+				if err := connectPeer(p, sock, signalURL, code, localID, peerSet); err != nil {
+					printError(fmt.Sprintf("failed to connect %s: %v", p.PeerID, err))
+					continue
+				}
+				return p.PeerID, nil
+			}
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func acceptMorePeers(ctx context.Context, signalURL, code, localID string, peerSet *p2p.PeerSet) {
+	known := make(map[string]bool)
+	known[localID] = true
+
+	for _, id := range peerSet.IDs() {
+		known[id] = true
+	}
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			peers, err := sig.GetPeers(signalURL, code)
+			if err != nil {
+				continue
+			}
+			for _, p := range peers {
+				if !known[p.PeerID] {
+					known[p.PeerID] = true
+					// connect via relay for additional peers (UDP socket already in use)
+					relay, err := p2p.NewRelayTransport(signalURL, code, localID)
+					if err != nil {
+						continue
+					}
+					relay.Start()
+					peerSet.Add(p.PeerID, relay)
+				}
+			}
+		}
+	}
+}
+
+func connectPeer(peer sig.PeerInfo, sock *net.UDPConn, signalURL, code, localID string, peerSet *p2p.PeerSet) error {
+	remoteIP := net.ParseIP(peer.PublicIP)
+	peerEP := p2p.PeerEndpoint{IP: remoteIP, Port: peer.PublicPort}
+
+	var result p2p.PunchResult
+	err := runWithSpinner(4, "punching through NAT", func() error {
+		puncher := p2p.NewPuncherWithConn(sock, peerEP, p2p.DefaultPunchConfig())
+		var e error
+		result, e = puncher.Punch()
+		return e
+	})
+	if err != nil {
+		printError("hole punch failed, falling back to relay")
+
+		relay, err := p2p.NewRelayTransport(signalURL, code, localID)
+		if err != nil {
+			return fmt.Errorf("relay failed: %w", err)
+		}
+		printStepDone(5, "relayed through signal server")
+		relay.Start()
+		peerSet.Add(peer.PeerID, relay)
+		return nil
+	}
+
+	printConnected(result.RTT.String())
+	transport := p2p.NewTransport(result.Conn, peerEP.UDPAddr(), localID, code)
+	transport.Start()
+	peerSet.Add(peer.PeerID, transport)
 	return nil
 }
 

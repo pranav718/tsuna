@@ -11,20 +11,24 @@ import (
 
 const maxLogs = 12
 
+type peerState struct {
+	name      string
+	online    bool
+	rtt       time.Duration
+	offset    time.Duration
+	syncDelta time.Duration
+	buffering bool
+	isHost    bool
+}
+
 type Model struct {
 	roomCode    string
 	isHost      bool
 	localID     string
-	remoteID    string
-	remoteName  string
-	peerOnline  bool
-	rtt         time.Duration
-	offset      time.Duration
-	syncDelta   time.Duration
+	peers       map[string]*peerState
 	localPos    time.Duration
 	localPaused bool
 	roomState   string
-	buffering   bool
 	logs        []string
 	width       int
 	height      int
@@ -36,12 +40,16 @@ type Model struct {
 }
 
 func NewModel(roomCode, localID, remoteID string, isHost bool, eventCh <-chan UIEvent, cancel func()) Model {
+	peers := make(map[string]*peerState)
+	if remoteID != "" {
+		peers[remoteID] = &peerState{name: remoteID, online: true, isHost: !isHost}
+	}
+
 	return Model{
 		roomCode:   roomCode,
 		isHost:     isHost,
 		localID:    localID,
-		remoteID:   remoteID,
-		peerOnline: true,
+		peers:      peers,
 		roomState:  "IDLE",
 		logs:       make([]string, 0, maxLogs),
 		eventCh:    eventCh,
@@ -78,26 +86,35 @@ func (m *Model) handleEvent(ev UIEvent) {
 	switch ev.Type {
 	case UIPeerHello:
 		if d, ok := ev.Data.(PeerData); ok {
-			m.remoteName = d.DisplayName
-			m.peerOnline = true
+			if p, exists := m.peers[d.PeerID]; exists {
+				p.name = d.DisplayName
+				p.online = true
+			} else {
+				m.peers[d.PeerID] = &peerState{name: d.DisplayName, online: true}
+			}
 			m.addLog("peer connected: " + d.DisplayName)
 		}
 
 	case UIPeerBye:
-		m.peerOnline = false
+		if d, ok := ev.Data.(PeerData); ok {
+			if p, exists := m.peers[d.PeerID]; exists {
+				p.online = false
+			}
+		}
 		m.addLog("peer disconnected")
 
 	case UIClockSync:
 		if d, ok := ev.Data.(ClockSyncData); ok {
-			m.rtt = d.RTT
-			m.offset = d.Offset
+			if p, exists := m.peers[d.PeerID]; exists {
+				p.rtt = d.RTT
+				p.offset = d.Offset
+			}
 		}
 
 	case UIStateUpdate:
 		if d, ok := ev.Data.(StateData); ok {
 			m.localPos = d.Position
 			m.localPaused = d.Paused
-			m.syncDelta = d.SyncDelta
 			if d.Paused {
 				m.roomState = "PAUSED"
 			} else {
@@ -111,12 +128,11 @@ func (m *Model) handleEvent(ev UIEvent) {
 		}
 
 	case UIBufferingStart:
-		m.buffering = true
 		m.roomState = "HOLDING"
 		m.addLog("buffering detected. holding peers")
 
 	case UIBufferingStop:
-		m.buffering = false
+		m.roomState = "PLAYING"
 		m.addLog("buffering resolved :D , resuming")
 
 	case UILog:
@@ -202,43 +218,46 @@ func (m Model) renderPeers() string {
 		DimText.Render("(you, "+role+")"),
 	)
 
-	remoteStatus := PeerOnline
-	remoteMeta := ""
-	if !m.peerOnline {
-		remoteStatus = PeerOffline
-		remoteMeta = DimText.Render("disconnected")
-	} else {
-		parts := []string{}
-		if m.rtt > 0 {
-			parts = append(parts, fmt.Sprintf("rtt %v", m.rtt.Round(time.Millisecond)))
+	lines := []string{title, local}
+
+	for id, p := range m.peers {
+		status := PeerOnline
+		meta := ""
+		if !p.online {
+			status = PeerOffline
+			meta = DimText.Render("disconnected")
+		} else {
+			parts := []string{}
+			if p.rtt > 0 {
+				parts = append(parts, fmt.Sprintf("rtt %v", p.rtt.Round(time.Millisecond)))
+			}
+			if p.syncDelta != 0 {
+				parts = append(parts, fmt.Sprintf("Δ %+dms", p.syncDelta.Milliseconds()))
+			}
+			if p.buffering {
+				parts = append(parts, lipgloss.NewStyle().Foreground(yellow).Render("buffering"))
+			}
+			meta = DimText.Render(strings.Join(parts, "  "))
 		}
-		if m.syncDelta != 0 {
-			parts = append(parts, fmt.Sprintf("Δ %+dms", m.syncDelta.Milliseconds()))
+
+		name := p.name
+		if name == "" {
+			name = id
 		}
-		if m.buffering {
-			parts = append(parts, lipgloss.NewStyle().Foreground(yellow).Render("buffering"))
+		peerRole := "peer"
+		if p.isHost {
+			peerRole = "host"
 		}
-		remoteMeta = DimText.Render(strings.Join(parts, "  "))
+		line := fmt.Sprintf("  %s %s  %s  %s",
+			status.String(),
+			ValueText.Render(truncate(name, 20)),
+			DimText.Render("("+peerRole+")"),
+			meta,
+		)
+		lines = append(lines, line)
 	}
 
-	name := m.remoteName
-	if name == "" {
-		name = m.remoteID
-	}
-	remoteRole := "peer"
-	if m.isHost {
-		remoteRole = "peer"
-	} else {
-		remoteRole = "host"
-	}
-	remote := fmt.Sprintf("  %s %s  %s  %s",
-		remoteStatus.String(),
-		ValueText.Render(truncate(name, 20)),
-		DimText.Render("("+remoteRole+")"),
-		remoteMeta,
-	)
-
-	return fmt.Sprintf("%s\n%s\n%s", title, local, remote)
+	return strings.Join(lines, "\n")
 }
 
 func (m Model) renderPlayback() string {
