@@ -75,6 +75,7 @@ type Puncher struct {
 	mu       sync.Mutex
 	resultCh chan PunchResult
 	stopCh   chan struct{}
+	closeOnce sync.Once
 }
 
 func NewPuncher(remote PeerEndpoint, cfg PunchConfig) (*Puncher, error) {
@@ -113,6 +114,8 @@ func (p *Puncher) Punch() (PunchResult, error) {
 
 	select {
 	case result := <-p.resultCh:
+		p.local.SetReadDeadline(time.Time{})
+		p.closeOnce.Do(func() { close(p.stopCh) })
 		return result, nil
 	case <-time.After(p.cfg.Timeout):
 		p.setState(StateFailed)
@@ -190,6 +193,6 @@ func (p *Puncher) State() PunchState {
 }
 
 func (p *Puncher) Close() error {
-	close(p.stopCh)
+	p.closeOnce.Do(func() { close(p.stopCh) })
 	return p.local.Close()
 }

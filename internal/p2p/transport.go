@@ -78,7 +78,6 @@ func (t *Transport) readLoop() {
 
 		env, err := DecodeEnvelope(buf[:n])
 		if err != nil {
-			log.Printf("[transport] decode error: %v", err)
 			continue
 		}
 
