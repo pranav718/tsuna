@@ -13,13 +13,14 @@ import (
 	"github.com/pranav718/tsuna/internal/session"
 	sig "github.com/pranav718/tsuna/internal/signal"
 	"github.com/pranav718/tsuna/internal/tui"
+	"github.com/pranav718/tsuna/internal/web"
 	"github.com/spf13/cobra"
 )
 
 var joinCmd = &cobra.Command{
 	Use:   "join <CODE>",
 	Short: "join a watch party room",
-	Long:  "join an existing tsuna room using a 6-character room code.",
+	Long:  "join an existing tsuna room using a 6 character room code.",
 	Args:  cobra.ExactArgs(1),
 	RunE:  runJoin,
 }
@@ -32,7 +33,7 @@ func runJoin(cmd *cobra.Command, args []string) error {
 	code := strings.ToUpper(strings.TrimSpace(args[0]))
 
 	if len(code) != 6 {
-		return fmt.Errorf("invalid room code %q -- must be exactly 6 characters", code)
+		return fmt.Errorf("invalid room code %q : must be exactly 6 characters", code)
 	}
 
 	printBanner()
@@ -135,7 +136,17 @@ func runJoin(cmd *cobra.Command, args []string) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	uiCh := make(chan tui.UIEvent, 64)
+	srcCh := make(chan tui.UIEvent, 64)
+	tuiCh := make(chan tui.UIEvent, 64)
+	webCh := make(chan tui.UIEvent, 64)
+	web.FanOut(srcCh, tuiCh, webCh)
+
+	bridge := web.NewBridge(":9090", webCh)
+	bridge.Start()
+
+	if !noBrowser {
+		go openBrowser("http://localhost:3000")
+	}
 
 	sess := session.New(session.Config{
 		LocalID:   localID,
@@ -144,15 +155,21 @@ func runJoin(cmd *cobra.Command, args []string) error {
 		IsHost:    false,
 		MpvSocket: mpvSocket,
 		Transport: sender,
-		UIEvents:  uiCh,
+		UIEvents:  srcCh,
 	})
 
 	go func() {
 		sess.Run(ctx)
-		close(uiCh)
+		close(srcCh)
 	}()
 
-	model := tui.NewModel(code, localID, hostPeer.PeerID, false, uiCh, cancel)
+	bridge.Broadcast(web.Event{Type: "init", Data: map[string]any{
+		"room_code": code,
+		"local_id":  localID,
+		"is_host":   false,
+	}})
+
+	model := tui.NewModel(code, localID, hostPeer.PeerID, false, tuiCh, cancel)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("tui error: %w", err)

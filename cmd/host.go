@@ -6,7 +6,9 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
+	"runtime"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,6 +17,7 @@ import (
 	"github.com/pranav718/tsuna/internal/session"
 	sig "github.com/pranav718/tsuna/internal/signal"
 	"github.com/pranav718/tsuna/internal/tui"
+	"github.com/pranav718/tsuna/internal/web"
 	"github.com/spf13/cobra"
 )
 
@@ -85,7 +88,6 @@ func runHost(cmd *cobra.Command, args []string) error {
 
 	peerSet := p2p.NewPeerSet()
 
-	// wait for first peer before launching TUI
 	firstPeer, err := waitForFirstPeer(signalServer, code, localID, sock, peerSet)
 	if err != nil {
 		sock.Close()
@@ -95,10 +97,19 @@ func runHost(cmd *cobra.Command, args []string) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	// keep polling for more peers in the background
 	go acceptMorePeers(ctx, signalServer, code, localID, peerSet)
 
-	uiCh := make(chan tui.UIEvent, 64)
+	srcCh := make(chan tui.UIEvent, 64)
+	tuiCh := make(chan tui.UIEvent, 64)
+	webCh := make(chan tui.UIEvent, 64)
+	web.FanOut(srcCh, tuiCh, webCh)
+
+	bridge := web.NewBridge(":9090", webCh)
+	bridge.Start()
+
+	if !noBrowser {
+		go openBrowser("http://localhost:3000")
+	}
 
 	sess := session.New(session.Config{
 		LocalID:   localID,
@@ -107,15 +118,21 @@ func runHost(cmd *cobra.Command, args []string) error {
 		IsHost:    true,
 		MpvSocket: mpvSocket,
 		Transport: peerSet,
-		UIEvents:  uiCh,
+		UIEvents:  srcCh,
 	})
 
 	go func() {
 		sess.Run(ctx)
-		close(uiCh)
+		close(srcCh)
 	}()
 
-	model := tui.NewModel(code, localID, firstPeer, true, uiCh, cancel)
+	bridge.Broadcast(web.Event{Type: "init", Data: map[string]any{
+		"room_code": code,
+		"local_id":  localID,
+		"is_host":   true,
+	}})
+
+	model := tui.NewModel(code, localID, firstPeer, true, tuiCh, cancel)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("tui error: %w", err)
@@ -169,7 +186,6 @@ func acceptMorePeers(ctx context.Context, signalURL, code, localID string, peerS
 			for _, p := range peers {
 				if !known[p.PeerID] {
 					known[p.PeerID] = true
-					// connect via relay for additional peers (UDP socket already in use)
 					relay, err := p2p.NewRelayTransport(signalURL, code, localID)
 					if err != nil {
 						continue
@@ -219,4 +235,17 @@ func generatePeerID() string {
 		host = "peer"
 	}
 	return fmt.Sprintf("%s-%04x", host, rand.Intn(0xFFFF))
+}
+
+func openBrowser(url string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "linux":
+		cmd = exec.Command("xdg-open", url)
+	default:
+		cmd = exec.Command("open", url)
+	}
+	_ = cmd.Start()
 }
