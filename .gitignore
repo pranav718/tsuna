@@ -22,6 +22,7 @@ bin/
 web/node_modules/
 web/.next/
 web/out/
+web/package-lock.json
 web/.env
 web/.env.local
 web/.env.production
