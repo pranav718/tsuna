@@ -1,24 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0a0a0f;
-  --color-surface: rgba(255, 255, 255, 0.03);
-  --color-surface-hover: rgba(255, 255, 255, 0.06);
-  --color-border: rgba(255, 255, 255, 0.06);
-  --color-border-bright: rgba(255, 255, 255, 0.12);
-  --color-accent: #e879a0;
-  --color-accent-dim: rgba(232, 121, 160, 0.15);
-  --color-success: #4ade80;
-  --color-warning: #fbbf24;
-  --color-danger: #f87171;
-  --color-text: #e4e4e7;
-  --color-dim: #71717a;
-  --color-muted: #3f3f46;
+  --color-bg: #1a1a1a;
+  --color-bg-grid: #1e1e1e;
+  --color-surface: rgba(255, 165, 0, 0.04);
+  --color-surface-hover: rgba(255, 165, 0, 0.08);
+  --color-border: #e8a020;
+  --color-border-bright: #ffb830;
+  --color-border-dim: rgba(232, 160, 32, 0.3);
+  --color-accent: #e8a020;
+  --color-accent-dim: rgba(232, 160, 32, 0.15);
+  --color-accent-glow: rgba(232, 160, 32, 0.5);
+  --color-success: #e8a020;
+  --color-warning: #ff6600;
+  --color-danger: #cc3300;
+  --color-text: #e8a020;
+  --color-text-bright: #ffcc44;
+  --color-dim: #b07818;
+  --color-muted: #6b4a12;
   --font-jp: "Noto Sans JP", sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", "Fira Code", monospace;
   --animate-float-up: float-up 2.5s ease-out forwards;
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
   --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-scanline: scanline 8s linear infinite;
+  --animate-flicker: flicker 0.15s infinite;
 }
 
 @layer base {
@@ -30,8 +36,45 @@
   body {
     background: var(--color-bg);
     color: var(--color-text);
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
     overflow: hidden;
+    position: relative;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.15) 2px,
+      rgba(0, 0, 0, 0.15) 4px
+    );
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(232, 160, 32, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232, 160, 32, 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  ::selection {
+    background: rgba(232, 160, 32, 0.35);
+    color: #ffcc44;
+  }
+
+  input, textarea {
+    caret-color: var(--color-accent);
   }
 }
 
@@ -48,17 +91,19 @@
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 4px rgba(232, 121, 160, 0.2);
+    box-shadow: 0 0 4px rgba(232, 160, 32, 0.3);
+    text-shadow: 0 0 4px rgba(232, 160, 32, 0.3);
   }
   50% {
-    box-shadow: 0 0 12px rgba(232, 121, 160, 0.4);
+    box-shadow: 0 0 14px rgba(232, 160, 32, 0.6);
+    text-shadow: 0 0 14px rgba(232, 160, 32, 0.6);
   }
 }
 
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -66,16 +111,60 @@
   }
 }
 
+@keyframes scanline {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 100vh;
+  }
+}
+
+@keyframes flicker {
+  0% { opacity: 0.97; }
+  50% { opacity: 1; }
+  100% { opacity: 0.98; }
+}
+
+@utility panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  position: relative;
+}
+
+@utility panel-header {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.75rem;
+  margin: -1px -1px 0 -1px;
+  border: 1px solid var(--color-border);
+}
+
+@utility panel-dim {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-dim);
+  border-radius: 0;
+}
+
 @utility glass {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  backdrop-filter: blur(12px);
-  border-radius: 12px;
+  backdrop-filter: none;
+  border-radius: 0;
 }
 
 @utility glass-bright {
   background: var(--color-surface-hover);
   border: 1px solid var(--color-border-bright);
-  backdrop-filter: blur(16px);
-  border-radius: 12px;
+  backdrop-filter: none;
+  border-radius: 0;
+}
+
+@utility text-glow {
+  text-shadow: 0 0 8px rgba(232, 160, 32, 0.6), 0 0 20px rgba(232, 160, 32, 0.2);
 }
