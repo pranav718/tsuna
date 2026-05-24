@@ -22,12 +22,12 @@ export default function ReactionsOverlay({ reactions, onReact }: Props) {
         ))}
       </div>
 
-      <div className="flex gap-1.5">
+      <div className="flex gap-1">
         {EMOJI_LIST.map((emoji) => (
           <button
             key={emoji}
             onClick={() => onReact(emoji)}
-            className="w-8 h-8 rounded-lg bg-surface hover:bg-surface-hover border border-border hover:border-border-bright transition-all duration-200 flex items-center justify-center text-sm hover:scale-110 active:scale-95"
+            className="w-7 h-7 bg-surface hover:bg-surface-hover border border-border-dim hover:border-border transition-all duration-200 flex items-center justify-center text-sm hover:scale-110 active:scale-95"
           >
             {emoji}
           </button>

@@ -42,39 +42,42 @@ export default function ChatPanel({ send, localId }: Props) {
   };
 
   return (
-    <div className="glass p-4 flex flex-col">
-      <h2 className="text-xs font-semibold tracking-widest text-dim mb-3">CHAT</h2>
+    <div className="panel flex flex-col h-full">
+      <div className="panel-header">CHAT</div>
 
-      <div className="flex-1 h-40 overflow-y-auto space-y-2 mb-3">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {messages.map((msg) => (
           <div key={msg.id} className="animate-fade-in">
             <div className="flex items-baseline gap-2">
               <span className="text-[10px] text-muted">{msg.time}</span>
-              <span className="text-xs text-accent font-medium">
+              <span className="text-xs text-accent font-bold">
                 {msg.sender.slice(0, 12)}
               </span>
             </div>
-            <p className="text-sm text-text pl-12">{msg.text}</p>
+            <p className="text-xs text-text pl-12">{msg.text}</p>
           </div>
         ))}
         {messages.length === 0 && (
-          <p className="text-xs text-dim italic">no messages yet</p>
+          <p className="text-[10px] text-dim">no messages yet</p>
         )}
         <div ref={bottomRef} />
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-0 border-t border-border" style={{ background: 'rgba(6, 4, 2, 0.6)' }}>
+        <div className="flex items-center px-2 text-dim text-xs">
+          ⌨
+        </div>
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="type a message..."
-          className="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:border-accent/40 transition-colors"
+          className="flex-1 bg-transparent border-none px-2 py-2 text-xs text-text placeholder:text-muted outline-none"
         />
         <button
           onClick={handleSend}
-          className="px-4 py-2 rounded-lg bg-accent/15 text-accent text-sm font-medium hover:bg-accent/25 transition-colors active:scale-95"
+          className="px-4 py-2 bg-accent text-bg text-xs font-bold uppercase tracking-wider hover:bg-text-bright transition-colors active:scale-95"
         >
           send
         </button>
