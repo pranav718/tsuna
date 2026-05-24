@@ -23,34 +23,37 @@ export default function Dashboard() {
   } = useTsunaSocket("ws://localhost:9090/ws");
 
   return (
-    <div className="h-screen flex flex-col p-4 gap-4 overflow-hidden">
-      <header className="flex items-center justify-between">
+    <div className="h-screen flex flex-col p-3 gap-3 overflow-hidden relative z-10">
+      <header className="flex items-center justify-between border border-border px-3 py-2 panel">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-tight" style={{ fontFamily: "var(--font-jp)" }}>
-            津波 <span className="text-text">TSUNA</span>
+          <h1
+            className="text-sm font-bold tracking-widest uppercase text-glow"
+            style={{ fontFamily: "var(--font-jp)" }}
+          >
+            津波 <span className="text-text-bright">TSUNA</span>
           </h1>
           {init && (
-            <span className="font-mono text-sm px-3 py-1 rounded-lg glass-bright text-accent animate-pulse-glow">
+            <span className="font-mono text-xs px-2 py-0.5 border border-border text-accent animate-pulse-glow">
               {init.room_code}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <ReactionsOverlay reactions={reactions} onReact={addReaction} />
           <div className="flex items-center gap-2">
             <span
-              className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-danger"}`}
+              className={`w-2 h-2 ${connected ? "bg-success" : "bg-danger"}`}
             />
-            <span className="text-xs text-dim">
-              {connected ? "live" : "connecting..."}
+            <span className="text-xs text-dim uppercase tracking-wider">
+              {connected ? "● live" : "○ connecting..."}
             </span>
           </div>
         </div>
       </header>
 
-      <div className="flex-1 grid grid-cols-3 gap-4 min-h-0">
-        <div className="flex flex-col gap-4">
+      <div className="flex-1 grid grid-cols-3 gap-3 min-h-0">
+        <div className="flex flex-col gap-3">
           <PeersPanel
             peers={peers}
             localId={init?.local_id || "..."}
@@ -63,14 +66,18 @@ export default function Dashboard() {
         <div className="flex flex-col">
           <ChatPanel send={send} localId={init?.local_id || "..."} />
         </div>
+
         <div className="flex flex-col">
           <LogPanel logs={logs} />
         </div>
       </div>
 
-      <footer className="flex items-center justify-between text-xs text-muted">
+      <footer className="flex items-center justify-between text-xs text-muted border border-border-dim px-3 py-1.5 panel-dim" style={{ backdropFilter: 'blur(10px)' }}>
         <span>tsuna v0.1.0</span>
-        <span>{init?.is_host ? "hosting" : "joined"} • {peers.size} peer{peers.size !== 1 ? "s" : ""}</span>
+        <span>
+          {init?.is_host ? "hosting" : "joined"} • {peers.size} peer
+          {peers.size !== 1 ? "s" : ""}
+        </span>
       </footer>
     </div>
   );

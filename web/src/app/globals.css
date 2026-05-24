@@ -2,29 +2,26 @@
 
 @theme {
   --color-bg: #1a1a1a;
-  --color-bg-grid: #1e1e1e;
-  --color-surface: rgba(255, 165, 0, 0.04);
-  --color-surface-hover: rgba(255, 165, 0, 0.08);
+  --color-surface: rgba(10, 8, 6, 0.82);
+  --color-surface-hover: rgba(18, 14, 10, 0.88);
   --color-border: #e8a020;
   --color-border-bright: #ffb830;
-  --color-border-dim: rgba(232, 160, 32, 0.3);
+  --color-border-dim: rgba(232, 160, 32, 0.4);
   --color-accent: #e8a020;
   --color-accent-dim: rgba(232, 160, 32, 0.15);
   --color-accent-glow: rgba(232, 160, 32, 0.5);
   --color-success: #e8a020;
   --color-warning: #ff6600;
   --color-danger: #cc3300;
-  --color-text: #e8a020;
+  --color-text: #f0b830;
   --color-text-bright: #ffcc44;
-  --color-dim: #b07818;
-  --color-muted: #6b4a12;
+  --color-dim: #c08820;
+  --color-muted: #7a5518;
   --font-jp: "Noto Sans JP", sans-serif;
   --font-mono: "IBM Plex Mono", "JetBrains Mono", "Fira Code", monospace;
   --animate-float-up: float-up 2.5s ease-out forwards;
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
   --animate-fade-in: fade-in 0.3s ease-out;
-  --animate-scanline: scanline 8s linear infinite;
-  --animate-flicker: flicker 0.15s infinite;
 }
 
 @layer base {
@@ -34,11 +31,22 @@
   }
 
   body {
-    background: var(--color-bg);
+    background: #0a0a0a;
     color: var(--color-text);
     font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
     overflow: hidden;
     position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image: url("/bg.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
   body::after {
@@ -51,25 +59,13 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 0, 0, 0.15) 2px,
-      rgba(0, 0, 0, 0.15) 4px
+      rgba(0, 0, 0, 0.06) 2px,
+      rgba(0, 0, 0, 0.06) 4px
     );
   }
 
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background-image:
-      linear-gradient(rgba(232, 160, 32, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(232, 160, 32, 0.03) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
-
   ::selection {
-    background: rgba(232, 160, 32, 0.35);
+    background: rgba(232, 160, 32, 0.4);
     color: #ffcc44;
   }
 
@@ -91,12 +87,12 @@
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 4px rgba(232, 160, 32, 0.3);
-    text-shadow: 0 0 4px rgba(232, 160, 32, 0.3);
+    box-shadow: 0 0 6px rgba(232, 160, 32, 0.3);
+    text-shadow: 0 0 6px rgba(232, 160, 32, 0.3);
   }
   50% {
-    box-shadow: 0 0 14px rgba(232, 160, 32, 0.6);
-    text-shadow: 0 0 14px rgba(232, 160, 32, 0.6);
+    box-shadow: 0 0 16px rgba(232, 160, 32, 0.6);
+    text-shadow: 0 0 16px rgba(232, 160, 32, 0.6);
   }
 }
 
@@ -111,31 +107,19 @@
   }
 }
 
-@keyframes scanline {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: 0 100vh;
-  }
-}
-
-@keyframes flicker {
-  0% { opacity: 0.97; }
-  50% { opacity: 1; }
-  100% { opacity: 0.98; }
-}
-
 @utility panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 0;
+  backdrop-filter: blur(20px) brightness(0.6) saturate(0.8);
+  -webkit-backdrop-filter: blur(20px) brightness(0.6) saturate(0.8);
   position: relative;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(0, 0, 0, 0.15);
 }
 
 @utility panel-header {
-  background: var(--color-accent);
-  color: var(--color-bg);
+  background: rgba(232, 160, 32, 0.9);
+  color: #0a0a06;
   font-weight: 700;
   font-size: 0.75rem;
   letter-spacing: 0.1em;
@@ -146,23 +130,30 @@
 }
 
 @utility panel-dim {
-  background: var(--color-surface);
+  background: rgba(10, 8, 6, 0.7);
   border: 1px solid var(--color-border-dim);
   border-radius: 0;
+  backdrop-filter: blur(16px) brightness(0.5);
+  -webkit-backdrop-filter: blur(16px) brightness(0.5);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
 @utility glass {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  backdrop-filter: none;
+  backdrop-filter: blur(20px) brightness(0.6) saturate(0.8);
+  -webkit-backdrop-filter: blur(20px) brightness(0.6) saturate(0.8);
   border-radius: 0;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(0, 0, 0, 0.15);
 }
 
 @utility glass-bright {
   background: var(--color-surface-hover);
   border: 1px solid var(--color-border-bright);
-  backdrop-filter: none;
+  backdrop-filter: blur(22px) brightness(0.55) saturate(0.8);
+  -webkit-backdrop-filter: blur(22px) brightness(0.55) saturate(0.8);
   border-radius: 0;
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.5);
 }
 
 @utility text-glow {
