@@ -1,27 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #1a1a1a;
-  --color-surface: rgba(10, 8, 6, 0.82);
-  --color-surface-hover: rgba(18, 14, 10, 0.88);
-  --color-border: #e8a020;
-  --color-border-bright: #ffb830;
-  --color-border-dim: rgba(232, 160, 32, 0.4);
+  --color-bg: #0a0806;
+  --color-surface: rgba(8, 6, 3, 0.9);
+  --color-surface-hover: rgba(16, 12, 6, 0.93);
+  --color-border: #c87d10;
+  --color-border-bright: #e8a020;
+  --color-border-dim: rgba(200, 125, 16, 0.25);
   --color-accent: #e8a020;
-  --color-accent-dim: rgba(232, 160, 32, 0.15);
-  --color-accent-glow: rgba(232, 160, 32, 0.5);
-  --color-success: #e8a020;
-  --color-warning: #ff6600;
-  --color-danger: #cc3300;
-  --color-text: #f0b830;
-  --color-text-bright: #ffcc44;
-  --color-dim: #c08820;
-  --color-muted: #7a5518;
+  --color-accent-dim: rgba(232, 160, 32, 0.1);
+  --color-accent-glow: rgba(232, 160, 32, 0.4);
+  --color-success: #7ab840;
+  --color-warning: #e86020;
+  --color-danger: #cc2200;
+  --color-command: #5ab870;
+  --color-text: #d4982a;
+  --color-text-bright: #f0b830;
+  --color-dim: #8a6218;
+  --color-muted: #4e3510;
+  --font-display: "VT323", monospace;
   --font-jp: "Noto Sans JP", sans-serif;
-  --font-mono: "IBM Plex Mono", "JetBrains Mono", "Fira Code", monospace;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", monospace;
   --animate-float-up: float-up 2.5s ease-out forwards;
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
-  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-fade-in: fade-in 0.25s ease-out;
+  --animate-blink: blink 1s step-end infinite;
+  --animate-peer-online: peer-online 3s ease-in-out infinite;
 }
 
 @layer base {
@@ -31,7 +35,7 @@
   }
 
   body {
-    background: #0a0a0a;
+    background: #060401;
     color: var(--color-text);
     font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
     overflow: hidden;
@@ -47,6 +51,7 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    filter: brightness(0.38) saturate(0.5);
   }
 
   body::after {
@@ -59,17 +64,18 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 0, 0, 0.06) 2px,
-      rgba(0, 0, 0, 0.06) 4px
+      rgba(0, 0, 0, 0.1) 2px,
+      rgba(0, 0, 0, 0.1) 4px
     );
   }
 
   ::selection {
-    background: rgba(232, 160, 32, 0.4);
+    background: rgba(232, 160, 32, 0.3);
     color: #ffcc44;
   }
 
-  input, textarea {
+  input,
+  textarea {
     caret-color: var(--color-accent);
   }
 }
@@ -87,19 +93,19 @@
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 6px rgba(232, 160, 32, 0.3);
-    text-shadow: 0 0 6px rgba(232, 160, 32, 0.3);
+    box-shadow: 0 0 6px rgba(232, 160, 32, 0.2);
+    text-shadow: 0 0 6px rgba(232, 160, 32, 0.2);
   }
   50% {
-    box-shadow: 0 0 16px rgba(232, 160, 32, 0.6);
-    text-shadow: 0 0 16px rgba(232, 160, 32, 0.6);
+    box-shadow: 0 0 18px rgba(232, 160, 32, 0.55);
+    text-shadow: 0 0 18px rgba(232, 160, 32, 0.55);
   }
 }
 
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(3px);
   }
   to {
     opacity: 1;
@@ -107,55 +113,80 @@
   }
 }
 
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes peer-online {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 @utility panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 0;
-  backdrop-filter: blur(20px) brightness(0.6) saturate(0.8);
-  -webkit-backdrop-filter: blur(20px) brightness(0.6) saturate(0.8);
+  backdrop-filter: blur(24px) brightness(0.5) saturate(0.7);
+  -webkit-backdrop-filter: blur(24px) brightness(0.5) saturate(0.7);
   position: relative;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(0, 0, 0, 0.2);
 }
 
 @utility panel-header {
-  background: rgba(232, 160, 32, 0.9);
-  color: #0a0a06;
+  background: rgba(180, 110, 10, 0.9);
+  color: #030108;
   font-weight: 700;
-  font-size: 0.75rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 0.35rem 0.75rem;
+  padding: 0.18rem 0.6rem;
   margin: -1px -1px 0 -1px;
   border: 1px solid var(--color-border);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 @utility panel-dim {
-  background: rgba(10, 8, 6, 0.7);
+  background: rgba(5, 3, 1, 0.92);
   border: 1px solid var(--color-border-dim);
   border-radius: 0;
-  backdrop-filter: blur(16px) brightness(0.5);
-  -webkit-backdrop-filter: blur(16px) brightness(0.5);
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px) brightness(0.45);
+  -webkit-backdrop-filter: blur(20px) brightness(0.45);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+@utility dock-panel {
+  background: rgba(3, 2, 1, 0.96);
+  border-top: 1px solid var(--color-border);
+  backdrop-filter: blur(28px) brightness(0.38) saturate(0.6);
+  -webkit-backdrop-filter: blur(28px) brightness(0.38) saturate(0.6);
+  box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.7);
 }
 
 @utility glass {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  backdrop-filter: blur(20px) brightness(0.6) saturate(0.8);
-  -webkit-backdrop-filter: blur(20px) brightness(0.6) saturate(0.8);
+  backdrop-filter: blur(24px) brightness(0.5) saturate(0.7);
+  -webkit-backdrop-filter: blur(24px) brightness(0.5) saturate(0.7);
   border-radius: 0;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(0, 0, 0, 0.2);
 }
 
 @utility glass-bright {
   background: var(--color-surface-hover);
   border: 1px solid var(--color-border-bright);
-  backdrop-filter: blur(22px) brightness(0.55) saturate(0.8);
-  -webkit-backdrop-filter: blur(22px) brightness(0.55) saturate(0.8);
+  backdrop-filter: blur(22px) brightness(0.5) saturate(0.7);
+  -webkit-backdrop-filter: blur(22px) brightness(0.5) saturate(0.7);
   border-radius: 0;
-  box-shadow: 0 0 14px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.6);
 }
 
 @utility text-glow {
-  text-shadow: 0 0 8px rgba(232, 160, 32, 0.6), 0 0 20px rgba(232, 160, 32, 0.2);
+  text-shadow: 0 0 10px rgba(232, 160, 32, 0.5), 0 0 28px rgba(232, 160, 32, 0.15);
 }
