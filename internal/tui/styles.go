@@ -3,74 +3,99 @@ package tui
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	cyan    = lipgloss.Color("#00d4ff")
-	pink    = lipgloss.Color("#ff6b9d")
-	green   = lipgloss.Color("#00e676")
-	yellow  = lipgloss.Color("#ffd600")
-	red     = lipgloss.Color("#ff5252")
-	dimGray = lipgloss.Color("#666666")
-	white   = lipgloss.Color("#e0e0e0")
-	bg      = lipgloss.Color("#1a1a2e")
+	accent      = lipgloss.Color("#d8b4fe")
+	accentBright = lipgloss.Color("#e9d8fd")
+	command     = lipgloss.Color("#c084fc")
+	success     = lipgloss.Color("#a7f3d0")
+	warning     = lipgloss.Color("#fde047")
+	danger      = lipgloss.Color("#fca5a5")
+	dimGray     = lipgloss.Color("#9fa0b5")
+	muted       = lipgloss.Color("#76778f")
+	textColor   = lipgloss.Color("#e2e2ec")
+	white       = lipgloss.Color("#ffffff")
+	bg          = lipgloss.Color("#09090b")
+	surface     = lipgloss.Color("#0f0f11")
+	border      = lipgloss.Color("#27272a")
+	borderBright = lipgloss.Color("#52525b")
+)
+
+var (
+	cyan   = accent
+	pink   = command
+	green  = success
+	yellow = warning
+	red    = danger
 )
 
 var (
 	HeaderStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(cyan).
+			Foreground(accentBright).
 			Padding(0, 1)
 
 	RoomCodeStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(pink)
+			Foreground(command)
 
 	BadgePlaying = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(green).
-			SetString("> PLAYING")
+			Foreground(success).
+			SetString("▸ playing")
 
 	BadgePaused = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(yellow).
-			SetString("|| PAUSED")
+			Foreground(warning).
+			SetString("‖ paused")
 
 	BadgeHolding = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(yellow).
-			SetString(".. HOLDING")
+			Foreground(warning).
+			SetString(".. holding")
 
 	BadgeIdle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(dimGray).
-			SetString("-- IDLE")
+			Foreground(muted).
+			SetString("— idle")
 
 	SectionTitle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(cyan).
+			Foreground(accent).
 			MarginTop(1)
 
 	PeerOnline = lipgloss.NewStyle().
-			Foreground(green).
-			SetString("*")
+			Foreground(success).
+			SetString("●")
 
 	PeerBuffering = lipgloss.NewStyle().
-			Foreground(yellow).
-			SetString("*")
+			Foreground(warning).
+			SetString("◐")
 
 	PeerOffline = lipgloss.NewStyle().
-			Foreground(red).
-			SetString("*")
+			Foreground(danger).
+			SetString("○")
 
 	DimText = lipgloss.NewStyle().
 		Foreground(dimGray)
 
+	MutedText = lipgloss.NewStyle().
+		Foreground(muted)
+
 	ValueText = lipgloss.NewStyle().
-			Foreground(white)
+			Foreground(textColor)
+
+	BrightText = lipgloss.NewStyle().
+			Foreground(white).
+			Bold(true)
 
 	LogLine = lipgloss.NewStyle().
 		Foreground(dimGray)
 
 	BorderBox = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(cyan).
+			BorderForeground(border).
+			BorderBackground(bg).
 			Padding(0, 1)
+
+	FullScreen = lipgloss.NewStyle().
+			Background(bg)
 )

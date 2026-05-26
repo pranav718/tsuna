@@ -9,11 +9,11 @@ import (
 )
 
 var (
-	accentColor = lipgloss.Color("#00d4ff")
-	pinkColor   = lipgloss.Color("#ff6b9d")
-	greenColor  = lipgloss.Color("#00e676")
-	dimColor    = lipgloss.Color("#666666")
-	warnColor   = lipgloss.Color("#ffd600")
+	accentColor = lipgloss.Color("#d8b4fe") 
+	pinkColor   = lipgloss.Color("#c084fc")
+	greenColor  = lipgloss.Color("#a7f3d0")
+	dimColor    = lipgloss.Color("#9fa0b5")
+	warnColor   = lipgloss.Color("#fde047")
 )
 
 var (
