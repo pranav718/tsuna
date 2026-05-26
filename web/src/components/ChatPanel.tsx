@@ -33,9 +33,8 @@ function ts(): string {
 export default function ChatPanel({ send, localId, reactions, addReaction }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const typingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localName = localId && localId !== "..." ? localId.slice(0, 12) : "local-user";
 
   useEffect(() => {
     setMessages([
@@ -61,13 +60,15 @@ export default function ChatPanel({ send, localId, reactions, addReaction }: Pro
   }, [messages]);
 
   const addMsg = (partial: Omit<Message, "id">) =>
-    setMessages((prev) => [...prev, { ...partial, id: Date.now() }]);
+    setMessages((prev) => {
+      const nextId = prev.length > 0 ? Math.max(...prev.map((m) => m.id)) + 1 : 1;
+      return [...prev, { ...partial, id: nextId }];
+    });
 
   const handleSend = () => {
     const text = input.trim();
     if (!text) return;
     setInput("");
-    setIsTyping(false);
     const time = ts();
 
     if (text.startsWith("/")) {
@@ -80,14 +81,44 @@ export default function ChatPanel({ send, localId, reactions, addReaction }: Pro
         case "/help":
           addMsg({
             sender: "system",
-            text: "/clear · /me <action> · /status · /whois · /react <emoji> · /help",
+            text: "available commands:",
             time,
             type: "command",
+          });
+          addMsg({
+            sender: "system",
+            text: "/me <action> · show action status to peers",
+            time,
+            type: "system",
+          });
+          addMsg({
+            sender: "system",
+            text: "/react <emoji> · trigger screen reaction",
+            time,
+            type: "system",
+          });
+          addMsg({
+            sender: "system",
+            text: "/status · show node & sync telemetry",
+            time,
+            type: "system",
+          });
+          addMsg({
+            sender: "system",
+            text: "/whois · display your unique node id",
+            time,
+            type: "system",
+          });
+          addMsg({
+            sender: "system",
+            text: "/clear · purge local message log",
+            time,
+            type: "system",
           });
           return;
         case "/me":
           if (arg) {
-            addMsg({ sender: localId.slice(0, 12), text: `* ${arg}`, time, type: "event" });
+            addMsg({ sender: localName, text: `* ${arg}`, time, type: "event" });
             send("chat", { text: `* ${arg}` });
           }
           return;
@@ -120,7 +151,7 @@ export default function ChatPanel({ send, localId, reactions, addReaction }: Pro
         case "/whois":
           addMsg({
             sender: "system",
-            text: `you are ${localId}`,
+            text: `you are ${localId === "..." ? "offline / local-user" : localId}`,
             time,
             type: "command",
           });
@@ -136,32 +167,26 @@ export default function ChatPanel({ send, localId, reactions, addReaction }: Pro
       }
     }
 
-    addMsg({ sender: localId.slice(0, 12), text, time, type: "self" });
+    addMsg({ sender: localName, text, time, type: "self" });
     send("chat", { text });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
-    setIsTyping(true);
-    if (typingRef.current) clearTimeout(typingRef.current);
-    typingRef.current = setTimeout(() => setIsTyping(false), 1500);
+  };
+
+  const triggerReaction = (emoji: string) => {
+    addReaction(emoji);
+    addMsg({
+      sender: "system",
+      text: `you reacted with ${emoji}`,
+      time: ts(),
+      type: "event",
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if ((e.ctrlKey || e.metaKey) && e.key >= "1" && e.key <= "5") {
-      e.preventDefault();
-      const idx = parseInt(e.key) - 1;
-      const emoji = EMOJI_LIST[idx];
-      if (emoji) {
-        addReaction(emoji);
-        addMsg({
-          sender: "system",
-          text: `you reacted with ${emoji}`,
-          time: ts(),
-          type: "event",
-        });
-      }
-    } else if (e.key === "Enter") {
+    if (e.key === "Enter") {
       handleSend();
     }
   };
@@ -170,8 +195,8 @@ export default function ChatPanel({ send, localId, reactions, addReaction }: Pro
 
   return (
     <div className="flex flex-col h-full relative bg-surface">
-      <div className="h-[38px] px-4 border-b border-border bg-[#141416] flex items-center font-semibold shrink-0">
-        <span className="text-text-bright font-bold">chatroom</span>
+      <div className="h-[38px] px-4 border-b border-border bg-[#141416] flex items-center shrink-0">
+        <span className="text-text-bright font-bold text-[11px]">chatroom</span>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 relative">
@@ -247,21 +272,20 @@ export default function ChatPanel({ send, localId, reactions, addReaction }: Pro
         </div>
       </div>
 
-      {isTyping && (
-        <div className="px-4 py-1 flex items-center gap-1.5 text-[10px] text-dim border-t border-border select-none font-mono">
-          <span className="animate-blink">▮</span>
-          <span>writing command buffer...</span>
-        </div>
-      )}
-
       <div className="shrink-0 border-t border-border bg-black/40 h-[66px] flex flex-col justify-between">
-        <div className="px-4 text-[9px] text-dim border-b border-border flex flex-wrap gap-x-2 select-none tracking-wider h-[20px] items-center">
-          <span className="text-muted mr-1 font-bold">hotkeys:</span>
-          {EMOJI_LIST.map((emoji, idx) => (
-            <span key={emoji}>
-              ctrl+{idx + 1}:<span className="text-text-bright ml-0.5">{emoji}</span>
-            </span>
-          ))}
+        <div className="px-4 text-[10px] text-dim border-b border-border flex items-center justify-between select-none tracking-wider h-[20px]">
+          <span className="text-muted font-bold font-mono">reactions:</span>
+          <div className="flex gap-3">
+            {EMOJI_LIST.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => triggerReaction(emoji)}
+                className="hover:scale-125 transition-transform duration-100 cursor-pointer active:scale-95 text-xs px-0.5"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center flex-1 h-[45px]">
@@ -283,7 +307,7 @@ export default function ChatPanel({ send, localId, reactions, addReaction }: Pro
             onClick={handleSend}
             className="px-4 h-full text-[10px] font-bold lowercase tracking-wider text-bg bg-accent hover:bg-text-bright transition-colors active:scale-95 shrink-0 select-none"
           >
-            exec
+            send
           </button>
         </div>
       </div>

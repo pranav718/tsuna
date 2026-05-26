@@ -46,6 +46,9 @@ export default function SessionSidebar({
 }: Props) {
   const signalRef = useRef<HTMLDivElement>(null);
   const peerList = Array.from(peers.values());
+  const localName = localId && localId !== "..."
+    ? localId.slice(0, 12)
+    : (connected ? "connecting..." : "offline");
   const currentItem = queue.current >= 0 ? queue.items[queue.current] : null;
   const filename = currentItem
     ? currentItem.Filename.split("/").pop() || currentItem.Filename
@@ -66,41 +69,41 @@ export default function SessionSidebar({
 
   return (
     <div className="flex flex-col h-full select-none text-[11px] leading-relaxed">
-      <div className="h-[38px] px-4 border-b border-border bg-[#141416] flex items-center font-semibold shrink-0 text-text-bright">
-        <span>playback</span>
+      <div className="h-[38px] px-4 border-b border-border bg-[#141416] flex items-center shrink-0">
+        <span className="text-text-bright font-bold text-[11px]">session</span>
       </div>
 
       <div className="p-3 border-b border-border flex flex-col gap-1 shrink-0">
         <div className="flex justify-between items-baseline">
-          <span className="text-dim">status:</span>
-          <span className="font-semibold text-text-bright">
+          <span className="text-text-bright">status:</span>
+          <span className="font-mono text-dim">
             {STATUS_TEXT[roomState] || "idle"}
           </span>
         </div>
         {filename && (
           <div className="flex justify-between items-baseline gap-2">
-            <span className="text-dim shrink-0">track:</span>
-            <span className="truncate font-mono text-text-bright" title={filename}>
+            <span className="text-text-bright shrink-0">track:</span>
+            <span className="truncate font-mono text-dim" title={filename}>
               {filename}
             </span>
           </div>
         )}
         <div className="flex justify-between items-baseline">
-          <span className="text-dim">time:</span>
-          <span className="font-mono font-bold text-text-bright text-xs tabular-nums">
+          <span className="text-text-bright">time:</span>
+          <span className="font-mono text-dim tabular-nums">
             {formatTime(state.Position)}
           </span>
         </div>
         <div className="flex justify-between items-baseline">
-          <span className="text-dim">uptime:</span>
+          <span className="text-text-bright">uptime:</span>
           <span className="font-mono text-dim tabular-nums">
             {formatUptime(uptime)}
           </span>
         </div>
         {state.SyncDelta !== 0 && (
           <div className="flex justify-between items-baseline">
-            <span className="text-dim">sync delta:</span>
-            <span className="font-mono font-bold tabular-nums">
+            <span className="text-text-bright">sync delta:</span>
+            <span className="font-mono text-dim tabular-nums">
               {state.SyncDelta > 0 ? "+" : ""}{state.SyncDelta}ms
             </span>
           </div>
@@ -108,40 +111,34 @@ export default function SessionSidebar({
       </div>
 
       <div className="p-3 border-b border-border flex flex-col gap-1.5 shrink-0">
-        <div className="text-dim font-semibold">users:</div>
+        <div className="text-text-bright font-semibold">users:</div>
         <div className="flex flex-col gap-1 pl-1">
           <div className="flex items-center justify-between">
-            <span className="truncate font-semibold text-text-bright">
-              • {localId.slice(0, 12)} <span className="text-[9px] text-muted font-normal">(you, {isHost ? "host" : "peer"})</span>
+            <span className={`truncate ${connected ? "text-text-bright font-semibold" : "text-dim font-normal"}`}>
+              • {localName} <span className="text-[9px] text-muted font-normal">(you, {isHost ? "host" : "peer"})</span>
             </span>
-            <span className="text-success text-[10px]">●</span>
           </div>
           {peerList.map((p) => (
             <div key={p.PeerID} className="flex items-center justify-between">
               <span className={`truncate ${p.online ? "text-text" : "text-dim"}`}>
                 • {(p.DisplayName || p.PeerID).slice(0, 12)}
               </span>
-              <span className="flex items-center gap-1">
-                {p.online && p.rtt > 0 && (
-                  <span className="text-[9px] text-dim font-mono">{p.rtt.toFixed(0)}ms</span>
-                )}
-                <span className={p.online ? "text-success" : "text-dim"}>
-                  {p.online ? "●" : "○"}
-                </span>
-              </span>
+              {p.online && p.rtt > 0 && (
+                <span className="text-[9px] text-dim font-mono">{p.rtt.toFixed(0)}ms</span>
+              )}
             </div>
           ))}
         </div>
       </div>
 
       <div className="p-3 border-b border-border flex flex-col gap-1 shrink-0">
-        <div className="text-dim font-semibold">signal:</div>
+        <div className="text-text-bright font-semibold">signal:</div>
         <div 
           ref={signalRef}
           className="h-16 overflow-y-auto pl-1 font-mono text-[9px] text-dim space-y-0.5 scrollbar-none"
         >
           {logs.length === 0 ? (
-            <div className="italic text-muted">— awaiting signal —</div>
+            <div className="text-muted">(awaiting signal)</div>
           ) : (
             logs.map((entry, i) => (
               <div key={i} className="truncate">
@@ -153,10 +150,10 @@ export default function SessionSidebar({
       </div>
 
       <div className="p-3 flex-1 flex flex-col min-h-0">
-        <div className="text-dim font-semibold mb-1">queue:</div>
+        <div className="text-text-bright font-semibold mb-1">queue:</div>
         <div className="flex-1 overflow-y-auto min-h-0 pl-1 space-y-1">
           {queue.items.length === 0 ? (
-            <div className="italic text-muted text-[10px]">— queue is empty —</div>
+            <div className="text-muted text-[10px]">(queue is empty)</div>
           ) : (
             queue.items.map((item, i) => {
               const isCurrent = i === queue.current;
@@ -178,11 +175,11 @@ export default function SessionSidebar({
       <div className="shrink-0 border-t border-border px-4 text-[9px] text-dim flex flex-col justify-center bg-black/25 font-mono h-[66px] space-y-1">
         <div className="flex justify-between">
           <span>network</span>
-          <span className="text-success font-semibold">p2p mesh</span>
+          <span>p2p mesh</span>
         </div>
         <div className="flex justify-between">
           <span>bridge</span>
-          <span className={connected ? "text-success font-semibold" : "text-danger font-semibold animate-pulse"}>
+          <span>
             {connected ? "online" : "offline"}
           </span>
         </div>
