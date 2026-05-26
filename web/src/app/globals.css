@@ -1,77 +1,52 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0a0806;
-  --color-surface: rgba(8, 6, 3, 0.9);
-  --color-surface-hover: rgba(16, 12, 6, 0.93);
-  --color-border: #c87d10;
-  --color-border-bright: #e8a020;
-  --color-border-dim: rgba(200, 125, 16, 0.25);
-  --color-accent: #e8a020;
-  --color-accent-dim: rgba(232, 160, 32, 0.1);
-  --color-accent-glow: rgba(232, 160, 32, 0.4);
-  --color-success: #7ab840;
-  --color-warning: #e86020;
-  --color-danger: #cc2200;
-  --color-command: #5ab870;
-  --color-text: #d4982a;
-  --color-text-bright: #f0b830;
-  --color-dim: #8a6218;
-  --color-muted: #4e3510;
-  --font-display: "VT323", monospace;
+  --color-bg: #09090b;
+  --color-surface: #0f0f11;
+  --color-surface-hover: #18181b;
+  --color-border: #27272a;
+  --color-border-bright: #52525b;
+  --color-border-dim: #1f1f23;
+  --color-accent: #ffffff;
+  --color-accent-dim: rgba(255, 255, 255, 0.06);
+  --color-accent-glow: rgba(255, 255, 255, 0.01);
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-command: #a1a1aa;
+  --color-text: #e4e4e7;
+  --color-text-bright: #ffffff;
+  --color-dim: #a1a1aa;
+  --color-muted: #71717a;
+  --font-display: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-jp: "Noto Sans JP", sans-serif;
   --font-mono: "IBM Plex Mono", "JetBrains Mono", monospace;
-  --animate-float-up: float-up 2.5s ease-out forwards;
+  --animate-float-up: float-up 2s ease-out forwards;
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
-  --animate-fade-in: fade-in 0.25s ease-out;
+  --animate-fade-in: fade-in 0.2s ease-out;
   --animate-blink: blink 1s step-end infinite;
-  --animate-peer-online: peer-online 3s ease-in-out infinite;
+  --animate-peer-online: peer-online 2s ease-in-out infinite;
 }
 
 @layer base {
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-muted) transparent;
+    scrollbar-color: var(--color-border) transparent;
+    text-transform: lowercase;
   }
 
   body {
-    background: #060401;
+    background: #09090b;
     color: var(--color-text);
-    font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     overflow: hidden;
     position: relative;
-  }
-
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    background-image: url("/bg.png");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    filter: brightness(0.38) saturate(0.5);
-  }
-
-  body::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 9999;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.1) 2px,
-      rgba(0, 0, 0, 0.1) 4px
-    );
+    text-transform: lowercase;
   }
 
   ::selection {
-    background: rgba(232, 160, 32, 0.3);
-    color: #ffcc44;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
   }
 
   input,
@@ -87,25 +62,23 @@
   }
   100% {
     opacity: 0;
-    transform: translateY(-120px) scale(1.3);
+    transform: translateY(-60px) scale(1.3);
   }
 }
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 6px rgba(232, 160, 32, 0.2);
-    text-shadow: 0 0 6px rgba(232, 160, 32, 0.2);
+    opacity: 0.8;
   }
   50% {
-    box-shadow: 0 0 18px rgba(232, 160, 32, 0.55);
-    text-shadow: 0 0 18px rgba(232, 160, 32, 0.55);
+    opacity: 1;
   }
 }
 
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(3px);
+    transform: translateY(2px);
   }
   to {
     opacity: 1;
@@ -120,7 +93,7 @@
 
 @keyframes peer-online {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  50% { opacity: 0.6; }
 }
 
 @keyframes scan {
@@ -131,62 +104,29 @@
 @utility panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0;
-  backdrop-filter: blur(24px) brightness(0.5) saturate(0.7);
-  -webkit-backdrop-filter: blur(24px) brightness(0.5) saturate(0.7);
+  border-radius: 4px;
   position: relative;
-  box-shadow: 0 0 18px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(0, 0, 0, 0.2);
 }
 
 @utility panel-header {
-  background: rgba(180, 110, 10, 0.9);
-  color: #030108;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 0.18rem 0.6rem;
+  background: #141416;
+  color: var(--color-text-bright);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  padding: 0.4rem 0.8rem;
   margin: -1px -1px 0 -1px;
-  border: 1px solid var(--color-border);
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  border-bottom: 1px solid var(--color-border);
   font-family: var(--font-display);
-  font-size: 1rem;
-  line-height: 1.6;
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 @utility panel-dim {
-  background: rgba(5, 3, 1, 0.92);
-  border: 1px solid var(--color-border-dim);
-  border-radius: 0;
-  backdrop-filter: blur(20px) brightness(0.45);
-  -webkit-backdrop-filter: blur(20px) brightness(0.45);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-@utility dock-panel {
-  background: rgba(3, 2, 1, 0.96);
-  border-top: 1px solid var(--color-border);
-  backdrop-filter: blur(28px) brightness(0.38) saturate(0.6);
-  -webkit-backdrop-filter: blur(28px) brightness(0.38) saturate(0.6);
-  box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.7);
-}
-
-@utility glass {
-  background: var(--color-surface);
+  background: #09090b;
   border: 1px solid var(--color-border);
-  backdrop-filter: blur(24px) brightness(0.5) saturate(0.7);
-  -webkit-backdrop-filter: blur(24px) brightness(0.5) saturate(0.7);
-  border-radius: 0;
-  box-shadow: 0 0 18px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
 }
 
-@utility glass-bright {
-  background: var(--color-surface-hover);
-  border: 1px solid var(--color-border-bright);
-  backdrop-filter: blur(22px) brightness(0.5) saturate(0.7);
-  -webkit-backdrop-filter: blur(22px) brightness(0.5) saturate(0.7);
-  border-radius: 0;
-  box-shadow: 0 0 18px rgba(0, 0, 0, 0.6);
-}
-
-@utility text-glow {
-  text-shadow: 0 0 10px rgba(232, 160, 32, 0.5), 0 0 28px rgba(232, 160, 32, 0.15);
-}
