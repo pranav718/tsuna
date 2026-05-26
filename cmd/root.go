@@ -25,7 +25,7 @@ var rootCmd = &cobra.Command{
     ██║   ███████║╚██████╔╝██║ ╚████║██║  ██║
     ╚═╝   ╚══════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝
 
-  watch anime together. no servers. no accounts.
+  watch anything together. no servers. no accounts.
   just a 6-char room code and a UDP packet.`,
 }
 

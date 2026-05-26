@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "津波 Tsuna: Watch Together",
+  title: "tsuna: watch together",
   description: "synchronized video watching dashboard",
 };
 

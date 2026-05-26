@@ -45,13 +45,6 @@ export default function ChatPanel({ send, localId, reactions, addReaction }: Pro
         time: ts(),
         type: "system",
       },
-      {
-        id: 1,
-        sender: "system",
-        text: "press Ctrl+1 to Ctrl+5 to trigger reactions",
-        time: ts(),
-        type: "system",
-      },
     ]);
   }, []);
 

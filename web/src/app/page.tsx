@@ -49,13 +49,27 @@ export default function Dashboard() {
   }, [connected]);
 
   return (
-    <div className="h-screen flex flex-col bg-bg overflow-hidden relative z-10 p-4">
-      <div className="flex-1 flex flex-col w-full max-w-[1080px] mx-auto min-h-0 gap-4">
-        <header className="flex items-center select-none font-mono shrink-0">
-          <div className="flex items-baseline gap-4">
-            <h1 className="text-xl font-bold tracking-widest text-text-bright">tsuna</h1>
+    <div className="h-screen flex flex-col overflow-hidden relative z-10 p-4 pt-2">
+      <div className="flex-1 flex flex-col w-full max-w-[1080px] mx-auto min-h-0 gap-0">
+        <header className="flex items-center select-none font-mono shrink-0 pl-1 pb-1">
+          <div className="flex items-baseline gap-4 leading-none">
+            <h1
+              className="text-xl font-bold tracking-widest"
+              style={{
+                color: "#e9d8fd",
+                textShadow: "0 2px 4px rgba(0, 0, 0, 0.8), 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 20px rgba(168, 85, 247, 0.4)",
+                lineHeight: 1,
+              }}
+            >
+              tsuna
+            </h1>
             {init && (
-              <span className="text-[10px] text-dim">
+              <span
+                className="text-[10px] text-accent animate-pulse-glow"
+                style={{
+                  textShadow: "0 1px 3px rgba(0, 0, 0, 0.9), 0 2px 6px rgba(0, 0, 0, 0.7)",
+                }}
+              >
                 [{init.room_code.toLowerCase()}] {init.is_host ? "host node" : "peer node"}
               </span>
             )}
