@@ -194,7 +194,7 @@ func (m Model) renderHeader() string {
 		badge = BadgeHolding
 	}
 
-	left := HeaderStyle.Render("津波 TSUNA")
+	left := HeaderStyle.Render("tsuna")
 	code := RoomCodeStyle.Render(m.roomCode)
 	line := fmt.Sprintf("  %s    %s   %s", left, code, badge.String())
 
@@ -206,7 +206,7 @@ func (m Model) renderHeader() string {
 }
 
 func (m Model) renderPeers() string {
-	title := SectionTitle.Render("  PEERS")
+	title := SectionTitle.Render("  peers")
 
 	role := "host"
 	if !m.isHost {
@@ -261,7 +261,7 @@ func (m Model) renderPeers() string {
 }
 
 func (m Model) renderPlayback() string {
-	title := SectionTitle.Render("  PLAYBACK")
+	title := SectionTitle.Render("  playback")
 	icon := ">"
 	if m.localPaused {
 		icon = "||"
@@ -272,7 +272,7 @@ func (m Model) renderPlayback() string {
 }
 
 func (m Model) renderLogs() string {
-	title := SectionTitle.Render("  LOG")
+	title := SectionTitle.Render("  log")
 	if len(m.logs) == 0 {
 		return fmt.Sprintf("%s\n%s", title, DimText.Render("  waiting for events..."))
 	}
@@ -319,7 +319,7 @@ func (m Model) renderQueue() string {
 		return ""
 	}
 
-	title := SectionTitle.Render("  QUEUE")
+	title := SectionTitle.Render("  queue")
 	lines := make([]string, len(m.queueItems))
 	for i, item := range m.queueItems {
 		marker := "  "

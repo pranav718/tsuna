@@ -44,7 +44,7 @@ func showAllRooms() error {
 	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(accentColor)
 
 	fmt.Println()
-	fmt.Printf("  %s  %s\n\n", headerStyle.Render("ACTIVE ROOMS"), dim.Render(fmt.Sprintf("(%d)", len(rooms))))
+	fmt.Printf("  %s  %s\n\n", headerStyle.Render("active rooms"), dim.Render(fmt.Sprintf("(%d)", len(rooms))))
 
 	for _, r := range rooms {
 		age := time.Since(r.CreatedAt).Round(time.Second)
@@ -79,7 +79,7 @@ func showRoom(code string) error {
 
 	fmt.Println()
 	fmt.Printf("  %s  %s  %s\n\n",
-		headerStyle.Render("ROOM"),
+		headerStyle.Render("room"),
 		pink.Render(code),
 		dim.Render(fmt.Sprintf("%d peers", len(peers))),
 	)

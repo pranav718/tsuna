@@ -33,7 +33,7 @@ func printBanner() {
 		BorderForeground(accentColor).
 		Padding(0, 2)
 
-	title := bannerStyle.Render("TSUNA") + "  " + dim.Render("p2p synchronized video watching")
+	title := bannerStyle.Render("tsuna") + "  " + dim.Render("p2p synchronized video watching")
 	fmt.Println(box.Render(title))
 	fmt.Println()
 }

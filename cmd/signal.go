@@ -10,7 +10,7 @@ import (
 var signalCmd = &cobra.Command{
 	Use:   "signal",
 	Short: "run the signaling server",
-	Long:  "Start the lightweight signaling server for room code: peer address resolution.",
+	Long:  "start the lightweight signaling server for room code to peer address resolution.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		port, _ := cmd.Flags().GetInt("port")
 		addr := fmt.Sprintf(":%d", port)
