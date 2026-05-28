@@ -110,7 +110,20 @@ replace `SAKURA` with the code the host got. tsuna will punch through nat (or fa
 
 ### 5. play a video
 
-open the same video file in mpv on both machines. tsuna will keep them in sync. when one person pauses, seeks, or buffers, the other follows.
+launch mpv with the ipc socket that tsuna connects to:
+
+```bash
+mpv --input-ipc-server=/tmp/tsuna-mpv.sock your-video.mkv
+```
+
+both people need to run this with the same video file. once mpv is open and tsuna is connected, everything syncs automatically:
+
+- **pause/unpause** on one side pauses/unpauses the other
+- **seeking** on the host side seeks the peer to the same position
+- **buffering** is detected automatically and all peers pause until the buffering peer recovers
+- **micro-seek corrections** keep drift under a few milliseconds
+
+> **note**: both users need the same video file locally. tsuna syncs playback state, it doesn't stream the video itself. the `--input-ipc-server` path must match your `--mpv-socket` flag (defaults to `/tmp/tsuna-mpv.sock`).
 
 ---
 
@@ -151,7 +164,7 @@ once connected, the web dashboard at `localhost:3000` gives you:
 
 - **chatroom** - send messages to peers in the room
 - **session sidebar** - live status, playback time, uptime, sync delta, peer list, signal log, queue
-- **emoji reactions** - floating reactions that appear on screen (❤️ 😭 😂 💀 👀)
+- **emoji reactions** - floating reactions that appear on screen
 - **slash commands**:
 
 | command | what it does |
