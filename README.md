@@ -69,25 +69,9 @@ go install github.com/pranav718/tsuna@latest
 
 ## quick start
 
-you need three terminals minimum (four if testing both host and join on the same machine).
+tsuna connects to a public signal server by default, no setup needed.
 
-### 1. start the signal server
-
-```bash
-./tsuna signal
-```
-
-this starts the lightweight signaling server on `:8080`. it only does room-code-to-address lookup, no media flows through it.
-
-### 2. start the web dashboard
-
-```bash
-cd web && npm run dev
-```
-
-starts the next.js frontend on `localhost:3000`.
-
-### 3. host a room
+### 1. host a room
 
 ```bash
 ./tsuna host
@@ -100,7 +84,7 @@ tsuna will:
 4. wait for peers to join
 5. open the tui dashboard and the web dashboard in your browser
 
-### 4. join from another machine
+### 2. join from another machine
 
 ```bash
 ./tsuna join SAKURA
@@ -108,7 +92,7 @@ tsuna will:
 
 replace `SAKURA` with the code the host got. tsuna will punch through nat (or fall back to relay), connect, and open both dashboards.
 
-### 5. play a video
+### 3. play a video
 
 launch mpv with the ipc socket that tsuna connects to:
 
@@ -124,6 +108,8 @@ both people need to run this with the same video file. once mpv is open and tsun
 - **micro-seek corrections** keep drift under a few milliseconds
 
 > **note**: both users need the same video file locally. tsuna syncs playback state, it doesn't stream the video itself. the `--input-ipc-server` path must match your `--mpv-socket` flag (defaults to `/tmp/tsuna-mpv.sock`).
+
+> **web dashboard**: the web ui runs locally. start it with `cd web && npm run dev` before hosting/joining to get the browser dashboard alongside the tui.
 
 ---
 
@@ -213,22 +199,22 @@ command-line flags override config file values.
 
 ## local development
 
-for testing on a single machine, use the `--local` flag which skips stun and uses `127.0.0.1`.
+for testing on a single machine, use the `--local` flag which skips stun and uses `127.0.0.1`. this runs a local signal server instead of the public one.
 
 open four terminals:
 
 ```bash
-# terminal 1: signal server
+# terminal 1: signal server (local)
 cd ~/tsuna && go run . signal
 
 # terminal 2: web dashboard
 cd ~/tsuna/web && npm run dev
 
 # terminal 3: host
-cd ~/tsuna && go run . host --local
+cd ~/tsuna && go run . host --local --signal-server http://localhost:8080
 
 # terminal 4: join (use the code from terminal 3)
-cd ~/tsuna && go run . join XXXXXX --local
+cd ~/tsuna && go run . join XXXXXX --local --signal-server http://localhost:8080
 ```
 
 or just preview the tui without any networking:
@@ -238,6 +224,28 @@ go run . demo
 ```
 
 ---
+
+## self-hosting
+
+tsuna uses a public signal server by default (`https://tsuna-production.up.railway.app`). if you want to run your own:
+
+```bash
+# run the signal server
+./tsuna signal --port 8080
+
+# point clients to your server
+./tsuna host --signal-server http://your-server:8080
+./tsuna join SAKURA --signal-server http://your-server:8080
+```
+
+the signal server is a lightweight go http service (~270 lines) with zero external dependencies. it only handles room code lookup and websocket relay. no media ever flows through it.
+
+you can also deploy it with docker:
+
+```bash
+docker build -t tsuna-signal .
+docker run -p 8080:8080 tsuna-signal
+```
 
 ## project structure
 

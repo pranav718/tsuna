@@ -16,7 +16,7 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		SignalServer: "http://localhost:8080",
+		SignalServer: "https://tsuna-production.up.railway.app",
 		MpvSocket:    "/tmp/tsuna-mpv.sock",
 		DisplayName:  "",
 		LocalMode:    false,

@@ -54,6 +54,7 @@ func NewServer(addr string) *Server {
 
 func (s *Server) Start() error {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", s.handleRoot)
 	mux.HandleFunc("/register", s.handleRegister)
 	mux.HandleFunc("/peers", s.handlePeers)
 	mux.HandleFunc("/leave", s.handleLeave)
@@ -63,6 +64,22 @@ func (s *Server) Start() error {
 
 	log.Printf("[signal] server listening on %s", s.addr)
 	return http.ListenAndServe(s.addr, mux)
+}
+
+func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	s.mu.RLock()
+	roomCount := len(s.rooms)
+	s.mu.RUnlock()
+	json.NewEncoder(w).Encode(map[string]any{
+		"name":   "tsuna signal server",
+		"status": "ok",
+		"rooms":  roomCount,
+	})
 }
 
 func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
